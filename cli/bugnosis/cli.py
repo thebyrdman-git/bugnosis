@@ -4,6 +4,8 @@ import sys
 import os
 from typing import Optional
 from .scanner import GitHubScanner
+from .ai import AIEngine
+from .github import GitHubClient
 
 
 def print_bugs(bugs, show_details=False):
@@ -35,6 +37,78 @@ def print_bugs(bugs, show_details=False):
         print()
 
 
+def cmd_diagnose(args):
+    """AI diagnosis of a bug."""
+    if len(args) < 2:
+        print("Error: Repository and issue number required")
+        print("Usage: bugnosis diagnose owner/repo issue-number")
+        sys.exit(1)
+        
+    repo = args[0]
+    issue_num = int(args[1])
+    token = os.environ.get('GITHUB_TOKEN')
+    
+    print(f"Fetching issue #{issue_num} from {repo}...")
+    
+    client = GitHubClient(token=token)
+    issue = client.get_issue(repo, issue_num)
+    
+    if not issue:
+        print("Error: Could not fetch issue")
+        sys.exit(1)
+        
+    print(f"\nIssue: {issue['title']}")
+    print(f"URL: {issue['html_url']}")
+    print(f"Comments: {issue.get('comments', 0)}")
+    print("\nRunning AI diagnosis...\n")
+    
+    ai = AIEngine()
+    diagnosis = ai.diagnose_bug(issue)
+    
+    if diagnosis:
+        print("AI Diagnosis:")
+        print("-" * 60)
+        print(diagnosis)
+        print("-" * 60)
+    else:
+        print("AI diagnosis failed. Set GROQ_API_KEY environment variable.")
+        
+
+def cmd_generate_pr(args):
+    """Generate PR description with AI."""
+    if len(args) < 3:
+        print("Error: Repository, issue number, and fix description required")
+        print('Usage: bugnosis generate-pr owner/repo issue-number "what you fixed"')
+        sys.exit(1)
+        
+    repo = args[0]
+    issue_num = int(args[1])
+    fix_desc = args[2]
+    token = os.environ.get('GITHUB_TOKEN')
+    
+    print(f"Generating PR description for issue #{issue_num}...")
+    
+    client = GitHubClient(token=token)
+    issue = client.get_issue(repo, issue_num)
+    
+    if not issue:
+        print("Error: Could not fetch issue")
+        sys.exit(1)
+        
+    ai = AIEngine()
+    pr_description = ai.generate_pr_description(issue, fix_desc)
+    
+    if pr_description:
+        print("\nGenerated PR Description:")
+        print("=" * 60)
+        print(pr_description)
+        print("=" * 60)
+        print("\nCopy this for your PR or save to a file:")
+        print(f"  bugnosis generate-pr {repo} {issue_num} \"{fix_desc}\" > PR_DESCRIPTION.md")
+    else:
+        print("PR generation failed. Set GROQ_API_KEY environment variable.")
+
+
 def main():
     """Main CLI entry point."""
     args = sys.argv[1:]
@@ -45,12 +119,15 @@ Bugnosis - Find high-impact bugs to fix
 
 Usage:
     bugnosis scan <repo> [options]
+    bugnosis diagnose <repo> <issue-number>
+    bugnosis generate-pr <repo> <issue-number> "<what-you-fixed>"
     bugnosis help
 
 Examples:
     bugnosis scan pytorch/pytorch
     bugnosis scan rust-lang/rust --min-impact 80
-    bugnosis scan microsoft/vscode --details
+    bugnosis diagnose microsoft/vscode 23991
+    bugnosis generate-pr wireguard-gui 123 "Fixed snap package build"
 
 Options:
     --min-impact N    Minimum impact score (0-100, default: 70)
@@ -65,8 +142,16 @@ Get a token at: https://github.com/settings/tokens
 """)
         return
         
-    if args[0] != 'scan':
-        print(f"Unknown command: {args[0]}")
+    command = args[0]
+    
+    if command == 'diagnose':
+        cmd_diagnose(args[1:])
+        return
+    elif command == 'generate-pr':
+        cmd_generate_pr(args[1:])
+        return
+    elif command != 'scan':
+        print(f"Unknown command: {command}")
         print("Run 'bugnosis help' for usage")
         sys.exit(1)
         

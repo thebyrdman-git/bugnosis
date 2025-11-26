@@ -2,7 +2,9 @@ README.md
 setup.py
 bugnosis/__init__.py
 bugnosis/__main__.py
+bugnosis/ai.py
 bugnosis/cli.py
+bugnosis/github.py
 bugnosis/scanner.py
 bugnosis.egg-info/PKG-INFO
 bugnosis.egg-info/SOURCES.txt

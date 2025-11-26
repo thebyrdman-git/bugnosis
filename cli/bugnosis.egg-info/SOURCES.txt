@@ -1,0 +1,12 @@
+README.md
+setup.py
+bugnosis/__init__.py
+bugnosis/__main__.py
+bugnosis/cli.py
+bugnosis/scanner.py
+bugnosis.egg-info/PKG-INFO
+bugnosis.egg-info/SOURCES.txt
+bugnosis.egg-info/dependency_links.txt
+bugnosis.egg-info/entry_points.txt
+bugnosis.egg-info/requires.txt
+bugnosis.egg-info/top_level.txt

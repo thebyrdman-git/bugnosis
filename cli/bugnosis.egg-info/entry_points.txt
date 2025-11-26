@@ -1,0 +1,2 @@
+[console_scripts]
+bugnosis = bugnosis.cli:main

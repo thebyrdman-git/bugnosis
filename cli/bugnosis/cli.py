@@ -9,6 +9,8 @@ from .github import GitHubClient
 from .storage import BugDatabase
 from .multi_scan import scan_multiple_repos
 from .cache import APICache
+from .export import (export_bugs_json, export_bugs_csv, export_bugs_markdown,
+                     export_stats_json, export_leaderboard)
 
 
 def print_bugs(bugs, show_details=False):
@@ -232,6 +234,82 @@ def cmd_clear_cache(args):
     print("API cache cleared!")
 
 
+def cmd_export(args):
+    """Export bugs to file."""
+    if len(args) < 2:
+        print("Error: Format and output file required")
+        print("Usage: bugnosis export <json|csv|markdown> <output-file> [--min-impact N]")
+        sys.exit(1)
+        
+    format_type = args[0].lower()
+    output_file = args[1]
+    min_impact = 0
+    
+    # Parse options
+    i = 2
+    while i < len(args):
+        if args[i] == '--min-impact' and i + 1 < len(args):
+            min_impact = int(args[i + 1])
+            i += 2
+        else:
+            i += 1
+    
+    # Get bugs from database
+    db = BugDatabase()
+    bugs = db.get_bugs(min_impact=min_impact)
+    db.close()
+    
+    if not bugs:
+        print(f"No bugs found with impact >= {min_impact}")
+        print("Run 'bugnosis scan <repo> --save' first")
+        return
+    
+    # Export
+    print(f"Exporting {len(bugs)} bugs to {output_file}...")
+    
+    if format_type == 'json':
+        export_bugs_json(bugs, output_file)
+    elif format_type == 'csv':
+        export_bugs_csv(bugs, output_file)
+    elif format_type == 'markdown' or format_type == 'md':
+        export_bugs_markdown(bugs, output_file)
+    else:
+        print(f"Error: Unknown format '{format_type}'")
+        print("Supported formats: json, csv, markdown")
+        sys.exit(1)
+    
+    print(f"Exported successfully!")
+    print(f"Total bugs: {len(bugs)}")
+    print(f"Total potential impact: ~{sum(b['affected_users'] for b in bugs):,} users")
+
+
+def cmd_leaderboard(args):
+    """Generate leaderboard HTML."""
+    if len(args) < 1:
+        print("Error: Output file required")
+        print("Usage: bugnosis leaderboard <output-file.html>")
+        sys.exit(1)
+        
+    output_file = args[0]
+    
+    db = BugDatabase()
+    contributions = db.conn.execute(
+        'SELECT * FROM contributions ORDER BY submitted_at DESC'
+    ).fetchall()
+    contributions = [dict(row) for row in contributions]
+    db.close()
+    
+    if not contributions:
+        print("No contributions recorded yet")
+        print("Use 'bugnosis record-contribution' or the API to track contributions")
+        return
+    
+    print(f"Generating leaderboard with {len(contributions)} contributions...")
+    export_leaderboard(contributions, output_file)
+    print(f"Leaderboard generated: {output_file}")
+    print(f"Open in browser: file://{os.path.abspath(output_file)}")
+
+
 def main():
     """Main CLI entry point."""
     args = sys.argv[1:]
@@ -245,6 +323,8 @@ Usage:
     bugnosis scan-multi <repo1> <repo2> ... [options]
     bugnosis list [--min-impact N]
     bugnosis stats
+    bugnosis export <format> <output-file> [--min-impact N]
+    bugnosis leaderboard <output-file>
     bugnosis diagnose <repo> <issue-number>
     bugnosis generate-pr <repo> <issue-number> "<what-you-fixed>"
     bugnosis clear-cache
@@ -255,6 +335,10 @@ Examples:
     bugnosis scan-multi rust-lang/rust python/cpython --min-impact 80
     bugnosis list --min-impact 85
     bugnosis stats
+    bugnosis export json bugs.json --min-impact 85
+    bugnosis export csv bugs.csv
+    bugnosis export markdown BUGS.md --min-impact 90
+    bugnosis leaderboard leaderboard.html
     bugnosis diagnose microsoft/vscode 23991
     bugnosis generate-pr wireguard-gui 123 "Fixed snap package build"
     bugnosis clear-cache
@@ -293,6 +377,12 @@ Get a token at: https://github.com/settings/tokens
         return
     elif command == 'clear-cache':
         cmd_clear_cache(args[1:])
+        return
+    elif command == 'export':
+        cmd_export(args[1:])
+        return
+    elif command == 'leaderboard':
+        cmd_leaderboard(args[1:])
         return
     elif command != 'scan':
         print(f"Unknown command: {command}")

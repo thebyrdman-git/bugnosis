@@ -6,6 +6,7 @@ bugnosis/ai.py
 bugnosis/api.py
 bugnosis/cache.py
 bugnosis/cli.py
+bugnosis/export.py
 bugnosis/github.py
 bugnosis/multi_scan.py
 bugnosis/scanner.py

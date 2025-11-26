@@ -85,10 +85,10 @@ Choose your automation level:
 ### 4. Track Your Impact
 
 See exactly how you're giving back:
-- 👥 Users helped
-- ⏰ Time saved (collective)
-- 🎯 Impact score
-- 🏆 Achievements unlocked
+- Users helped
+- Time saved (collective)
+- Impact score
+- Achievements unlocked
 
 ---
 

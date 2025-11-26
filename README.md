@@ -28,6 +28,57 @@ You want to contribute to open source, but:
 
 ---
 
+## Usage
+
+### CLI
+
+```bash
+# Scan a repository
+bugnosis scan pytorch/pytorch --min-impact 85
+
+# Scan multiple repositories
+bugnosis scan-multi rust-lang/rust python/cpython --min-impact 80
+
+# Get AI diagnosis of a bug
+bugnosis diagnose pytorch/pytorch 12345
+
+# Generate PR description with AI
+bugnosis generate-pr pytorch/pytorch 12345 "Fixed memory leak"
+
+# View your saved bugs
+bugnosis list --min-impact 85
+
+# Check your impact stats
+bugnosis stats
+```
+
+### Python API
+
+```python
+from bugnosis import BugnosisAPI
+
+# Initialize API
+api = BugnosisAPI(github_token="your_token")
+
+# Scan for bugs
+bugs = api.scan_repo("pytorch/pytorch", min_impact=85)
+
+for bug in bugs:
+    print(f"{bug.title} - Impact: {bug.impact_score}/100")
+
+# Get AI diagnosis
+diagnosis = api.diagnose_bug("pytorch/pytorch", 12345)
+
+# Generate PR description
+pr_desc = api.generate_pr("pytorch/pytorch", 12345, "Fixed memory leak")
+
+# Track your impact
+stats = api.get_stats()
+print(f"You've helped {stats['total_users_helped']:,} users!")
+```
+
+Complete API documentation: [docs/API.md](docs/API.md)
+
 ## Real Example
 
 **First contribution using this approach:**

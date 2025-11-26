@@ -3,9 +3,13 @@ setup.py
 bugnosis/__init__.py
 bugnosis/__main__.py
 bugnosis/ai.py
+bugnosis/api.py
+bugnosis/cache.py
 bugnosis/cli.py
 bugnosis/github.py
+bugnosis/multi_scan.py
 bugnosis/scanner.py
+bugnosis/storage.py
 bugnosis.egg-info/PKG-INFO
 bugnosis.egg-info/SOURCES.txt
 bugnosis.egg-info/dependency_links.txt

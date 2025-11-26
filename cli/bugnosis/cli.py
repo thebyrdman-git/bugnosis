@@ -11,6 +11,9 @@ from .multi_scan import scan_multiple_repos
 from .cache import APICache
 from .export import (export_bugs_json, export_bugs_csv, export_bugs_markdown,
                      export_stats_json, export_leaderboard)
+from .config import BugnosisConfig
+from .analytics import generate_insights
+import json
 
 
 def print_bugs(bugs, show_details=False):
@@ -310,6 +313,140 @@ def cmd_leaderboard(args):
     print(f"Open in browser: file://{os.path.abspath(output_file)}")
 
 
+def cmd_insights(args):
+    """Generate insights from saved bugs."""
+    min_impact = 0
+    
+    # Parse options
+    i = 0
+    while i < len(args):
+        if args[i] == '--min-impact' and i + 1 < len(args):
+            min_impact = int(args[i + 1])
+            i += 2
+        else:
+            i += 1
+            
+    db = BugDatabase()
+    bugs = db.get_bugs(min_impact=min_impact)
+    db.close()
+    
+    if not bugs:
+        print(f"No bugs found with impact >= {min_impact}")
+        print("Run 'bugnosis scan <repo> --save' first")
+        return
+        
+    print(generate_insights(bugs))
+
+
+def cmd_watch(args):
+    """Manage watched repositories."""
+    if len(args) < 1:
+        print("Error: Subcommand required")
+        print("Usage: bugnosis watch <add|list|scan> [args]")
+        sys.exit(1)
+        
+    subcommand = args[0]
+    config = BugnosisConfig()
+    
+    if subcommand == 'add':
+        if len(args) < 2:
+            print("Error: Repository required")
+            print("Usage: bugnosis watch add <repo>")
+            sys.exit(1)
+        repo = args[1]
+        config.add_watched_repo(repo)
+        config.save()
+        print(f"Added {repo} to watch list")
+        
+    elif subcommand == 'remove':
+        if len(args) < 2:
+            print("Error: Repository required")
+            print("Usage: bugnosis watch remove <repo>")
+            sys.exit(1)
+        repo = args[1]
+        config.remove_watched_repo(repo)
+        config.save()
+        print(f"Removed {repo} from watch list")
+        
+    elif subcommand == 'list':
+        repos = config.get_watched_repos()
+        if not repos:
+            print("No repositories being watched")
+            print("Add with: bugnosis watch add <repo>")
+        else:
+            print(f"Watching {len(repos)} repositories:\n")
+            for repo in repos:
+                print(f"  - {repo}")
+                
+    elif subcommand == 'scan':
+        repos = config.get_watched_repos()
+        if not repos:
+            print("No repositories to scan")
+            print("Add with: bugnosis watch add <repo>")
+            return
+            
+        min_impact = config.get('min_impact', 70)
+        print(f"Scanning {len(repos)} watched repositories...\n")
+        
+        bugs = scan_multiple_repos(repos, min_impact=min_impact, 
+                                  token=config.get_github_token())
+        
+        db = BugDatabase()
+        db.save_bugs(bugs)
+        db.close()
+        
+        print(f"\nFound {len(bugs)} high-impact bugs")
+        print(f"Total potential impact: ~{sum(b.affected_users for b in bugs):,} users")
+        print(f"\nRun 'bugnosis list --min-impact {min_impact}' to see all")
+        
+    else:
+        print(f"Unknown subcommand: {subcommand}")
+        print("Available: add, remove, list, scan")
+
+
+def cmd_config(args):
+    """Manage configuration."""
+    if len(args) < 1:
+        print("Error: Subcommand required")
+        print("Usage: bugnosis config <get|set> <key> [value]")
+        sys.exit(1)
+        
+    subcommand = args[0]
+    config = BugnosisConfig()
+    
+    if subcommand == 'get':
+        if len(args) < 2:
+            # Show all config
+            print("Current configuration:")
+            print(json.dumps(config.config, indent=2))
+        else:
+            key = args[1]
+            value = config.get(key)
+            print(f"{key}: {value}")
+            
+    elif subcommand == 'set':
+        if len(args) < 3:
+            print("Error: Key and value required")
+            print("Usage: bugnosis config set <key> <value>")
+            sys.exit(1)
+        key = args[1]
+        value = args[2]
+        
+        # Try to parse value as JSON for complex types
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            pass  # Keep as string
+            
+        config.set(key, value)
+        config.save()
+        print(f"Set {key} = {value}")
+        
+    else:
+        print(f"Unknown subcommand: {subcommand}")
+        print("Available: get, set")
+
+
 def main():
     """Main CLI entry point."""
     args = sys.argv[1:]
@@ -323,6 +460,12 @@ Usage:
     bugnosis scan-multi <repo1> <repo2> ... [options]
     bugnosis list [--min-impact N]
     bugnosis stats
+    bugnosis insights [--min-impact N]
+    bugnosis watch add <repo>
+    bugnosis watch list
+    bugnosis watch scan
+    bugnosis config get <key>
+    bugnosis config set <key> <value>
     bugnosis export <format> <output-file> [--min-impact N]
     bugnosis leaderboard <output-file>
     bugnosis diagnose <repo> <issue-number>
@@ -383,6 +526,15 @@ Get a token at: https://github.com/settings/tokens
         return
     elif command == 'leaderboard':
         cmd_leaderboard(args[1:])
+        return
+    elif command == 'insights':
+        cmd_insights(args[1:])
+        return
+    elif command == 'watch':
+        cmd_watch(args[1:])
+        return
+    elif command == 'config':
+        cmd_config(args[1:])
         return
     elif command != 'scan':
         print(f"Unknown command: {command}")

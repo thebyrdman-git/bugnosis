@@ -1,8 +1,8 @@
-# 🔬 Bugnosis
+# Bugnosis
 
 **Diagnose bugs. Help thousands. Automate giving back.**
 
-> AI-powered platform for finding and fixing high-impact open source bugs
+AI-powered platform for finding and fixing high-impact open source bugs.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: Early Development](https://img.shields.io/badge/Status-Early%20Development-orange)](https://github.com/thebyrdman-git/bugnosis)
@@ -20,11 +20,11 @@ You want to contribute to open source, but:
 ## The Solution
 
 **Bugnosis** is an AI-powered platform that:
-- 📡 Finds high-impact bugs for you (background scanning)
-- 🎯 Scores bugs 0-100 by impact (users affected)
-- 🤖 Uses AI to diagnose and suggest fixes
-- 📊 Shows you exactly how many people you're helping
-- 🏆 Makes giving back fun with gamification
+- Finds high-impact bugs for you (background scanning)
+- Scores bugs 0-100 by impact (users affected)
+- Uses AI to diagnose and suggest fixes
+- Shows you exactly how many people you're helping
+- Makes giving back fun with gamification
 
 ---
 
@@ -51,12 +51,12 @@ That's **25,000 hours of human time saved** from one afternoon of work.
 
 ## How It Works
 
-### 1. 📡 Background Discovery (System Tray)
+### 1. Background Discovery (System Tray)
 
 Bugnosis runs quietly in your system tray, continuously scanning for high-impact bugs.
 
 ```
-📡 Radar Alert!
+Radar Alert!
 
 Bug detected: Broken snap package
 Project: wireguard-gui
@@ -67,7 +67,7 @@ Time to fix: ~2 hours
 [View Details] [Start Fix]
 ```
 
-### 2. 🔬 AI Diagnosis (Desktop App)
+### 2. AI Diagnosis (Desktop App)
 
 AI analyzes the bug and tells you:
 - What's broken and why
@@ -75,14 +75,14 @@ AI analyzes the bug and tells you:
 - Expected impact
 - Testing recommendations
 
-### 3. 🤖 Automated PRs (Optional)
+### 3. Automated PRs (Optional)
 
 Choose your automation level:
 - **Manual + AI Assist:** You code, AI helps write PR description
 - **AI Draft:** AI creates draft PR, you review/edit
 - **Auto:** AI fixes simple bugs (typos, configs) automatically
 
-### 4. 📊 Track Your Impact
+### 4. Track Your Impact
 
 See exactly how you're giving back:
 - 👥 Users helped
@@ -103,10 +103,10 @@ See exactly how you're giving back:
 ### Desktop App
 
 **4 Tabs:**
-1. **📡 Radar** - High-impact bugs detected
-2. **🎯 Impact** - Your contribution analytics
-3. **🤖 AI Assistant** - Automated PR workflow
-4. **📚 Learn** - Tutorials & community
+1. **Radar** - High-impact bugs detected
+2. **Impact** - Your contribution analytics
+3. **AI Assistant** - Automated PR workflow
+4. **Learn** - Tutorials & community
 
 ### System Tray
 - Radar notifications
@@ -115,11 +115,11 @@ See exactly how you're giving back:
 - Minimal distraction
 
 ### Community Features
-- 🏆 Public leaderboards (GitHub Pages)
-- 👥 Squad competitions
-- 🏢 Company challenges
-- 🎓 Mentor matching
-- 🎉 Contribution parties
+- Public leaderboards (GitHub Pages)
+- Squad competitions
+- Company challenges
+- Mentor matching
+- Contribution parties
 
 ---
 
@@ -132,9 +132,9 @@ Impact Score = User Base (40) + Severity (30) + Ease (20) + Time (10)
 ```
 
 **Example scores:**
-- **92/100** - Broken installation affecting 50,000 users 🔥
-- **75/100** - UI bug affecting all users, easy fix ⭐
-- **45/100** - Edge case affecting 100 users 🤷
+- **92/100** - Broken installation affecting 50,000 users (Critical)
+- **75/100** - UI bug affecting all users, easy fix (High Impact)
+- **45/100** - Edge case affecting 100 users (Low Impact)
 
 Focus on high-impact bugs (70+) for maximum giving back.
 
@@ -147,17 +147,17 @@ Focus on high-impact bugs (70+) for maximum giving back.
 **Early Development** - Building in public!
 
 **What exists:**
-- ✅ Impact scoring framework
-- ✅ Complete vision documented
-- ✅ Proof of concept (WireGuard PR)
-- ✅ Open source logos
+- Impact scoring framework
+- Complete vision documented
+- Proof of concept (WireGuard PR)
+- Open source logos
 
 **What's being built:**
-- 🔄 Background discovery engine
-- 🔄 System tray app
-- 🔄 Desktop app (Tauri + React)
-- 🔄 AI integration (Groq)
-- 🔄 GitHub Pages leaderboard
+- Background discovery engine
+- System tray app
+- Desktop app (Tauri + React)
+- AI integration (Groq)
+- GitHub Pages leaderboard
 
 ---
 
@@ -189,7 +189,7 @@ Focus on high-impact bugs (70+) for maximum giving back.
 
 **Not ready for users yet!** But you can:
 
-1. **Star this repo** ⭐ - Get updates
+1. **Star this repo** - Get updates
 2. **Join discussions** - Share ideas
 3. **Contribute** - Help build it
 4. **Follow progress** - Watch development
@@ -246,11 +246,11 @@ Want to help build Bugnosis? See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 We need help building this! Areas to contribute:
 
-- 🦀 **Rust developers** - Discovery engine, system tray
-- ⚛️ **Frontend developers** - Desktop app (React/Svelte)
-- 🤖 **AI/ML folks** - Impact prediction, bug diagnosis
-- 📝 **Technical writers** - Documentation, tutorials
-- 🎨 **Designers** - UI/UX, badges, certificates
+- **Rust developers** - Discovery engine, system tray
+- **Frontend developers** - Desktop app (React/Svelte)
+- **AI/ML folks** - Impact prediction, bug diagnosis
+- **Technical writers** - Documentation, tutorials
+- **Designers** - UI/UX, badges, certificates
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
@@ -284,11 +284,11 @@ That one contribution proved high-impact open source work doesn't take forever -
 
 ## Status
 
-🚧 **Early Development** - Building in public, iterating fast
+**Early Development** - Building in public, iterating fast.
 
-Follow along as we build a platform to help thousands contribute to open source! ⭐
+Follow along as we build a platform to help thousands contribute to open source.
 
 ---
 
-**Built with 💚 by contributors who care about impact**
+**Built by contributors who care about impact**
 

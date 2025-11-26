@@ -1,10 +1,10 @@
-# 🤝 Contributing to ANSAI Pull Requests
+# Contributing to Bugnosis
 
-**Thank you for wanting to help build this!**
+Thank you for wanting to help build this.
 
 ---
 
-## 💚 The Mission
+## The Mission
 
 Help people contribute to open source by:
 - Making it easy to find high-impact bugs
@@ -12,37 +12,37 @@ Help people contribute to open source by:
 - Celebrating successes
 - Building community
 
-**Every contribution to this project helps thousands contribute to others!**
+Every contribution to this project helps thousands contribute to others.
 
 ---
 
-## 🎯 What We Need
+## What We Need
 
-### 🐍 Python Developers
-- CLI tools (`ansai-pr-*` commands)
+### Rust Developers
+- Discovery engine (core scanning)
 - Impact scoring algorithm
-- GitHub/GitLab API integration
-- Testing infrastructure
+- System tray implementation
+- Performance optimization
 
-### 🤖 AI/ML Folks
+### AI/ML Developers
 - LLM integration (Groq, OpenAI, etc.)
 - Bug analysis prompts
 - PR description generation
 - Impact prediction models
 
-### 📝 Technical Writers
+### Technical Writers
 - Documentation
 - Tutorials
 - Blog posts
 - Video scripts
 
-### 🎨 Designers
+### Designers
 - Achievement badges
 - Social sharing cards
 - CLI output formatting
 - Web dashboard (future)
 
-### 🧪 Testers
+### Testers
 - Try features
 - Report bugs
 - Suggest improvements
@@ -50,29 +50,30 @@ Help people contribute to open source by:
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Fork & Clone
 
 ```bash
 # Fork on GitHub, then:
-git clone https://github.com/YOUR_USERNAME/ansai-pull-requests.git
-cd ansai-pull-requests
+git clone https://github.com/YOUR_USERNAME/bugnosis.git
+cd bugnosis
 ```
 
 ### 2. Set Up Development Environment
 
 ```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
+# Install Rust dependencies
+cargo build
 
-# Install dependencies
-pip install -r requirements-dev.txt
+# Install Node.js dependencies
+npm install
 
-# Install in development mode
-pip install -e .
+# Run in development mode
+npm run tauri dev
 ```
+
+See [DEVELOPERS.md](DEVELOPERS.md) for detailed setup instructions.
 
 ### 3. Create a Branch
 

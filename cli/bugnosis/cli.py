@@ -8,6 +8,7 @@ from .ai import AIEngine
 from .github import GitHubClient
 from .storage import BugDatabase
 from .multi_scan import scan_multiple_repos
+from .cache import APICache
 
 
 def print_bugs(bugs, show_details=False):
@@ -224,6 +225,13 @@ def cmd_stats(args):
     print("\nKeep making an impact!")
 
 
+def cmd_clear_cache(args):
+    """Clear API cache."""
+    cache = APICache()
+    cache.clear()
+    print("API cache cleared!")
+
+
 def main():
     """Main CLI entry point."""
     args = sys.argv[1:]
@@ -239,6 +247,7 @@ Usage:
     bugnosis stats
     bugnosis diagnose <repo> <issue-number>
     bugnosis generate-pr <repo> <issue-number> "<what-you-fixed>"
+    bugnosis clear-cache
     bugnosis help
 
 Examples:
@@ -248,6 +257,7 @@ Examples:
     bugnosis stats
     bugnosis diagnose microsoft/vscode 23991
     bugnosis generate-pr wireguard-gui 123 "Fixed snap package build"
+    bugnosis clear-cache
 
 Options:
     --min-impact N    Minimum impact score (0-100, default: 70)
@@ -280,6 +290,9 @@ Get a token at: https://github.com/settings/tokens
         return
     elif command == 'stats':
         cmd_stats(args[1:])
+        return
+    elif command == 'clear-cache':
+        cmd_clear_cache(args[1:])
         return
     elif command != 'scan':
         print(f"Unknown command: {command}")

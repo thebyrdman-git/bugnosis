@@ -45,7 +45,7 @@ You want to contribute to open source, but:
 
 **Result:** 50,000 snap users can now use the application.
 
-That's **25,000 hours of human time saved** from one afternoon of work.
+That's **25,000 hours of human time saved** from one morning of work.
 
 ---
 

@@ -188,3 +188,4 @@ class GitHubScanner:
         else:
             return "Low"
 
+

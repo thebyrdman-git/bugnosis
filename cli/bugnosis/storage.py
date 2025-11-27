@@ -128,3 +128,4 @@ class BugDatabase:
         """Close database connection."""
         self.conn.close()
 
+

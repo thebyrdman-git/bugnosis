@@ -108,3 +108,4 @@ class BugnosisConfig:
         """Get list of watched repositories."""
         return self.config.get('watched_repos', [])
 
+

@@ -67,6 +67,12 @@ bugnosis leaderboard leaderboard.html
 ### AI Features
 
 ```bash
+# AI Co-Pilot (interactive bug fixing)
+bugnosis copilot pytorch/pytorch 12345
+
+# Estimate bug difficulty
+bugnosis difficulty rust-lang/rust 54321
+
 # Get AI diagnosis of a bug
 bugnosis diagnose pytorch/pytorch 12345
 
@@ -242,4 +248,5 @@ export GROQ_API_KEY="gsk_your_key_here"
 - API reference: `docs/API.md`
 - Examples: `examples/api_usage.py`
 - Issues: https://github.com/thebyrdman-git/bugnosis/issues
+
 

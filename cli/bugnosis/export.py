@@ -255,3 +255,4 @@ def export_leaderboard(contributions: List[Dict], output_file: str):
     with open(output_file, 'w') as f:
         f.write(html)
 
+

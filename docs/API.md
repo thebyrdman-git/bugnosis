@@ -391,6 +391,70 @@ with BugnosisAPI() as api:
 - `GITHUB_TOKEN`: GitHub personal access token
 - `GROQ_API_KEY`: Groq API key for AI features
 
+## AI Co-Pilot
+
+Use AI Co-Pilot for guided bug fixing:
+
+```python
+from bugnosis.copilot import BugFixCopilot
+
+# Initialize Co-Pilot
+copilot = BugFixCopilot(api_key="your_groq_key")
+
+# Get a GitHub issue
+issue = {
+    "number": 12345,
+    "title": "Memory leak in cache",
+    "body": "Detailed description...",
+    "html_url": "https://github.com/..."
+}
+
+# Deep analysis
+analysis = copilot.analyze_bug(issue)
+print(analysis['analysis'])
+
+# Estimate difficulty
+difficulty = copilot.estimate_difficulty(issue)
+print(f"Difficulty: {difficulty['difficulty']}")
+print(f"Estimate: {difficulty['estimate']}")
+
+# Generate code fix
+fix = copilot.generate_fix(
+    issue=issue,
+    file_path="src/cache.py",
+    file_content=open("src/cache.py").read(),
+    analysis=analysis['analysis']
+)
+print(fix['fix'])
+
+# Review changes before committing
+review = copilot.review_changes(
+    original_code=old_code,
+    fixed_code=new_code,
+    file_path="src/cache.py"
+)
+print(f"Review Status: {review['status']}")
+print(review['review'])
+
+# Generate tests
+tests = copilot.generate_tests(
+    issue=issue,
+    fix_description="Fixed memory leak in cache cleanup",
+    test_framework="pytest"
+)
+print(tests['tests'])
+
+# Generate PR description
+pr = copilot.generate_pr_description(
+    issue=issue,
+    changes_summary="Updated cache cleanup logic",
+    testing_done="Added 5 tests, all passing"
+)
+print(pr['pr_description'])
+```
+
+See [AI_COPILOT.md](AI_COPILOT.md) for full documentation.
+
 ## Error Handling
 
 All API methods return `None` or empty lists on errors instead of raising exceptions:
@@ -419,4 +483,5 @@ api = BugnosisAPI(github_token="...", use_cache=True)
 
 For issues, feature requests, or contributions:
 https://github.com/thebyrdman-git/bugnosis
+
 

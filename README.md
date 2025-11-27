@@ -2,344 +2,71 @@
 
 **Diagnose bugs. Help thousands. Automate giving back.**
 
-AI-powered platform for finding and fixing high-impact open source bugs.
+Bugnosis is an AI-powered platform that turns open source contribution into a high-impact, gamified experience. It finds the bugs that matter most, helps you fix them with AI, and tracks the real-world impact of your work.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: Early Development](https://img.shields.io/badge/Status-Early%20Development-orange)](https://github.com/thebyrdman-git/bugnosis)
+![Bugnosis Hero Dashboard](gui/public/bug-logo.png)
 
----
+## The Mission
 
-## The Problem
+Most developers want to contribute to open source, but finding meaningful work is hard. "Good first issues" are often trivial.
 
-You want to contribute to open source, but:
-- Finding bugs worth fixing is hard
-- You don't know which bugs help the most people
-- Writing PRs takes time
-- It's hard to track your impact
+Bugnosis focuses on **High-Impact Opportunities**: bugs that affect thousands of users, block major releases, or cause significant pain. We call this the **Hero Engine**.
 
-## The Solution
+[Read our Full Vision](VISION.md)
 
-**Bugnosis** is an AI-powered platform that:
-- Finds high-impact bugs for you (background scanning)
-- Scores bugs 0-100 by impact (users affected)
-- Uses AI to diagnose and suggest fixes
-- Shows you exactly how many people you're helping
-- Makes giving back fun with gamification
+## Key Features
 
----
-
-## Usage
-
-### CLI
-
-```bash
-# Scan a repository
-bugnosis scan pytorch/pytorch --min-impact 85
-
-# Scan multiple repositories
-bugnosis scan-multi rust-lang/rust python/cpython --min-impact 80
-
-# Get AI diagnosis of a bug
-bugnosis diagnose pytorch/pytorch 12345
-
-# Generate PR description with AI
-bugnosis generate-pr pytorch/pytorch 12345 "Fixed memory leak"
-
-# View your saved bugs
-bugnosis list --min-impact 85
-
-# Check your impact stats
-bugnosis stats
-```
-
-### Python API
-
-```python
-from bugnosis import BugnosisAPI
-
-# Initialize API
-api = BugnosisAPI(github_token="your_token")
-
-# Scan for bugs
-bugs = api.scan_repo("pytorch/pytorch", min_impact=85)
-
-for bug in bugs:
-    print(f"{bug.title} - Impact: {bug.impact_score}/100")
-
-# Get AI diagnosis
-diagnosis = api.diagnose_bug("pytorch/pytorch", 12345)
-
-# Generate PR description
-pr_desc = api.generate_pr("pytorch/pytorch", 12345, "Fixed memory leak")
-
-# Track your impact
-stats = api.get_stats()
-print(f"You've helped {stats['total_users_helped']:,} users!")
-```
-
-Complete API documentation: [docs/API.md](docs/API.md)
-
-## Real Example
-
-**First contribution using this approach:**
-
-- **Project:** [wireguard-gui](https://github.com/0xle0ne/wireguard-gui)
-- **PR:** [#399](https://github.com/0xle0ne/wireguard-gui/pull/399)
-- **Time:** 4 hours
-- **Impact Score:** 77/100 (High Impact)
-- **Users Helped:** ~50,000
-
-**What was fixed:**
-1. Broken snap package (completely non-functional)
-2. CSS animation typo
-3. Import dialog not showing hidden files
-
-**Result:** 50,000 snap users can now use the application.
-
-That's **25,000 hours of human time saved** from one morning of work.
-
----
-
-## How It Works
-
-### 1. Background Discovery (System Tray)
-
-Bugnosis runs quietly in your system tray, continuously scanning for high-impact bugs.
-
-```
-Radar Alert!
-
-Bug detected: Broken snap package
-Project: wireguard-gui
-Impact: 92/100 (Critical!)
-Users: ~50,000
-Time to fix: ~2 hours
-
-[View Details] [Start Fix]
-```
-
-### 2. AI Diagnosis (Desktop App)
-
-AI analyzes the bug and tells you:
-- What's broken and why
-- How to fix it
-- Expected impact
-- Testing recommendations
-
-### 3. Automated PRs (Optional)
-
-Choose your automation level:
-- **Manual + AI Assist:** You code, AI helps write PR description
-- **AI Draft:** AI creates draft PR, you review/edit
-- **Auto:** AI fixes simple bugs (typos, configs) automatically
-
-### 4. Track Your Impact
-
-See exactly how you're giving back:
-- Users helped
-- Time saved (collective)
-- Impact score
-- Achievements unlocked
-
----
-
-## Features
-
-### Smart Discovery
-- Background scanning of GitHub/GitLab
-- Impact scoring (0-100)
-- Skill matching (finds bugs you can fix)
-- Time estimation
-
-### Desktop App
-
-**4 Tabs:**
-1. **Radar** - High-impact bugs detected
-2. **Impact** - Your contribution analytics
-3. **AI Assistant** - Automated PR workflow
-4. **Learn** - Tutorials & community
-
-### System Tray
-- Radar notifications
-- Quick actions
-- Always accessible
-- Minimal distraction
-
-### Community Features
-- Public leaderboards (GitHub Pages)
-- Squad competitions
-- Company challenges
-- Mentor matching
-- Contribution parties
-
----
-
-## Impact Scoring System
-
-Not all bugs are equal. Bugnosis scores them 0-100 based on:
-
-```
-Impact Score = User Base (40) + Severity (30) + Ease (20) + Time (10)
-```
-
-**Example scores:**
-- **92/100** - Broken installation affecting 50,000 users (Critical)
-- **75/100** - UI bug affecting all users, easy fix (High Impact)
-- **45/100** - Edge case affecting 100 users (Low Impact)
-
-Focus on high-impact bugs (70+) for maximum giving back.
-
-[Full scoring details](docs/IMPACT_SCORING.md)
-
----
-
-## Status
-
-**Early Development** - Building in public!
-
-**What exists:**
-- Impact scoring framework
-- Complete vision documented
-- Proof of concept (WireGuard PR)
-- Open source logos
-
-**What's being built:**
-- Background discovery engine
-- System tray app
-- Desktop app (Tauri + React)
-- AI integration (Groq)
-- GitHub Pages leaderboard
-
----
-
-## Vision
-
-[Read the complete vision](BUGNOSIS_VISION.md)
-
-**Key innovations:**
-1. **Impact-first** - Focus on bugs that help the most people
-2. **AI-powered** - Diagnose, fix, and write PRs with AI
-3. **Gamified** - Make giving back fun and competitive
-4. **Community** - Squads, challenges, leaderboards
-5. **Automated** - From discovery to PR submission
-
----
-
-## Technology Stack
-
-- **Desktop:** Tauri (Rust + React/Svelte)
-- **System Tray:** Cross-platform (AppIndicator/NSStatusBar/System Tray API)
-- **Discovery Engine:** Rust
-- **AI:** Groq (llama-3.1-70b) with OpenAI fallback
-- **Database:** SQLite (local-first)
-- **Leaderboard:** GitHub Pages + Actions
-
----
+*   **Smart Search:** Type "Firefox" or "Linux Kernel", and our AI resolves the targets across GitHub, GitLab, and Bugzilla.
+*   **Impact Scoring:** Every bug is scored (0-100) based on user base, severity, and time-to-fix.
+*   **Hero Profile:** Earn XP, rank up from *Script Kiddie* to *Ecosystem Guardian*, and unlock badges.
+*   **AI Co-Pilot:** An intelligent assistant that helps you diagnose issues and draft Pull Requests (you stay in control).
+*   **Privacy First:** Works offline. Local-first database. You choose what to sync.
 
 ## Getting Started
 
-**Not ready for users yet!** But you can:
+### 1. Installation
 
-1. **Star this repo** - Get updates
-2. **Join discussions** - Share ideas
-3. **Contribute** - Help build it
-4. **Follow progress** - Watch development
+*Currently in early development. Build from source:*
 
-Want to help build Bugnosis? See [CONTRIBUTING.md](CONTRIBUTING.md)
+```bash
+# Clone the repo
+git clone https://github.com/thebyrdman-git/bugnosis.git
+cd bugnosis
 
----
+# Install CLI dependencies
+cd cli
+pip install -e .
 
-## Philosophy
+# Run the GUI
+cd ../gui
+npm install
+npm run tauri dev
+```
 
-### Impact-Driven
-> "Your time is valuable. Spend it helping the most people possible."
+### 2. Your First Scan
 
-### Open & Transparent
-> "Built in public. Progress tracked publicly. Leaderboards public."
+Use the CLI or the Desktop App to find your first target:
 
-### AI-Assisted, Not AI-Replaced
-> "AI helps you contribute better. You're always in control."
-
-### Community-First
-> "Make giving back fun, social, and rewarding."
-
----
+```bash
+bugnosis smart-scan "python requests library"
+```
 
 ## Roadmap
 
-### Phase 1: MVP (Current)
-- Impact scoring system
-- Basic bug discovery
-- Desktop app prototype
-- System tray notifications
+We are building the "Antivirus for Open Source Bugs".
 
-### Phase 2: AI Integration
-- AI diagnosis engine
-- PR description generation
-- Automated fork/push
-- Impact dashboard
+*   **Phase 1:** Impact Engine & Smart Search (Current)
+*   **Phase 2:** AI Co-Pilot & Rejection Coaching
+*   **Phase 3:** Cloud Sync & Community Leaderboards
 
-### Phase 3: Community
-- GitHub Pages leaderboard
-- Squad system
-- Achievement badges
-- Social sharing
-
-### Phase 4: Automation
-- AI Draft PRs
-- Auto-fix simple bugs
-- PR tracking
-- Contribution parties
-
----
+[View the full Roadmap](ROADMAP.md)
 
 ## Contributing
 
-We need help building this! Areas to contribute:
+We welcome feedback on our vision and architecture!
 
-- **Rust developers** - Discovery engine, system tray
-- **Frontend developers** - Desktop app (React/Svelte)
-- **AI/ML folks** - Impact prediction, bug diagnosis
-- **Technical writers** - Documentation, tutorials
-- **Designers** - UI/UX, badges, certificates
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
----
-
-## Community
-
-- **GitHub Discussions:** [Ask questions, share ideas](https://github.com/thebyrdman-git/bugnosis/discussions)
-- **Twitter:** Coming soon
-- **Discord:** Coming soon
-
----
+Please check out [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to get involved.
 
 ## License
 
-MIT © 2025 Bugnosis Contributors
-
----
-
-## Inspiration
-
-This project was inspired by a simple realization:
-
-> "I spent 4 hours fixing bugs and helped 50,000 people. What if this was easy for everyone?"
-
-That one contribution proved high-impact open source work doesn't take forever - it just takes focus on the right bugs.
-
-**Bugnosis makes finding those bugs automatic.**
-
----
-
-## Status
-
-**Early Development** - Building in public, iterating fast.
-
-Follow along as we build a platform to help thousands contribute to open source.
-
----
-
-**Built by contributors who care about impact**
-
+MIT License. Free and open source forever.

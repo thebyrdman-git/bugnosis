@@ -16,6 +16,18 @@ Every contribution to this project helps thousands contribute to others.
 
 ---
 
+## 📣 Feedback on Vision
+
+We are currently shaping the core philosophy of the **Hero Engine**. We want your thoughts!
+
+*   Do you like the "Antivirus" aesthetic?
+*   Is the "Impact Score" methodology fair?
+*   How should "Rejection Coaching" work?
+
+Please share your thoughts in [GitHub Discussions](https://github.com/thebyrdman-git/bugnosis/discussions).
+
+---
+
 ## What We Need
 
 ### Rust Developers
@@ -64,13 +76,13 @@ cd bugnosis
 
 ```bash
 # Install Rust dependencies
-cargo build
-
-# Install Node.js dependencies
+cd gui
 npm install
-
-# Run in development mode
 npm run tauri dev
+
+# Install CLI dependencies
+cd ../cli
+pip install -e .
 ```
 
 See [DEVELOPERS.md](DEVELOPERS.md) for detailed setup instructions.
@@ -90,13 +102,13 @@ Follow our [code style](#code-style) and [commit guidelines](#commit-guidelines)
 ### 5. Test
 
 ```bash
-# Run tests
+# Run CLI tests
+cd cli
 pytest
 
-# Run linters
-black .
-flake8 .
-mypy .
+# Run GUI linting
+cd ../gui
+npm run lint
 ```
 
 ### 6. Submit PR
@@ -107,19 +119,6 @@ git push origin feature/your-feature-name
 # Then create PR on GitHub
 gh pr create --fill
 ```
-
----
-
-## 📋 How to Find Tasks
-
-### Good First Issues
-Start here: [good first issue label](https://github.com/thebyrdman-git/ansai-pull-requests/labels/good%20first%20issue)
-
-### High Impact Issues
-Help us build impactful features: [high-impact label](https://github.com/thebyrdman-git/ansai-pull-requests/labels/high-impact)
-
-### Documentation
-Always needed: [documentation label](https://github.com/thebyrdman-git/ansai-pull-requests/labels/documentation)
 
 ---
 
@@ -167,158 +166,6 @@ test: add tests for PR generation
 chore: update dependencies
 ```
 
-### PRs
-- Clear title following conventional commits
-- Description explaining what and why
-- Link to related issues
-- Screenshots/demos if UI changes
-
----
-
-## 🧪 Testing
-
-### Run Tests
-```bash
-# All tests
-pytest
-
-# Specific test
-pytest tests/test_impact_scoring.py
-
-# With coverage
-pytest --cov=ansai_pr
-```
-
-### Write Tests
-Every feature needs tests:
-
-```python
-def test_impact_score_critical_bug():
-    """Test that critical bugs affecting many users score high."""
-    score = calculate_impact_score(
-        users_affected=50000,
-        severity=Severity.CRITICAL,
-        fix_difficulty=Difficulty.EASY,
-        time_estimate=2.0,
-    )
-    assert score >= 90, "Critical bugs should score 90+"
-```
-
----
-
-## 📚 Documentation
-
-### Code Documentation
-- Docstrings for all public functions
-- Type hints everywhere
-- Inline comments for complex logic
-
-### User Documentation
-- Clear explanations
-- Lots of examples
-- Beginner-friendly language
-- No jargon without explanation
-
----
-
-## 🎯 Pull Request Guidelines
-
-### Before Submitting
-- [ ] Tests pass
-- [ ] Linters pass
-- [ ] Documentation updated
-- [ ] CHANGELOG.md updated (if significant)
-- [ ] Commit messages follow convention
-
-### PR Description Template
-
-```markdown
-## Description
-Brief explanation of what this PR does.
-
-## Motivation
-Why is this change needed? What problem does it solve?
-
-## Changes
-- Added X feature
-- Fixed Y bug
-- Updated Z documentation
-
-## Testing
-How was this tested? What scenarios were covered?
-
-## Breaking Changes
-Any breaking changes? How should users adapt?
-
-## Related Issues
-Closes #123
-Related to #456
-```
-
----
-
-## 🌟 First Contribution?
-
-**We love first-time contributors!**
-
-Look for issues labeled:
-- `good first issue`
-- `beginner-friendly`
-- `documentation`
-
-Don't hesitate to ask questions:
-- Comment on the issue
-- Join our [Discord](https://discord.gg/ansai-pr)
-- Tag @thebyrdman-git
-
-**Everyone starts somewhere. We're here to help!** 💚
-
----
-
-## 🎁 Recognition
-
-Contributors are celebrated in:
-- README.md contributors section
-- CONTRIBUTORS.md file
-- Monthly community shoutouts
-- Achievement badges (coming soon!)
-
-**Every contribution matters!**
-
----
-
-## 💬 Communication
-
-- **GitHub Issues:** Bug reports, feature requests
-- **GitHub Discussions:** Ideas, questions, help
-- **Discord:** Real-time chat, community
-- **Twitter:** [@ansai_pr](https://twitter.com/ansai_pr)
-
----
-
-## 🚫 Code of Conduct
-
-### Our Pledge
-We're committed to providing a welcoming, inclusive environment for everyone.
-
-### Our Standards
-- ✅ Be respectful and kind
-- ✅ Welcome beginners
-- ✅ Give constructive feedback
-- ✅ Focus on what's best for the community
-- ✅ Show empathy
-
-### Not Acceptable
-- ❌ Harassment of any kind
-- ❌ Trolling or insulting comments
-- ❌ Personal attacks
-- ❌ Publishing others' private info
-- ❌ Unwelcome sexual attention
-
-### Enforcement
-Violations can be reported to conduct@ansai.dev.  
-We will review and take appropriate action.
-
 ---
 
 ## 🎯 Impact-Driven Contributions
@@ -339,7 +186,6 @@ When contributing to this project:
 Have ideas? We want to hear them!
 
 - Open an issue for discussion
-- Join Discord #ideas channel
 - Comment on existing issues
 - Start a GitHub Discussion
 
@@ -355,19 +201,6 @@ Want to work on something? Comment on the issue or create one!
 
 ---
 
-## 📈 Growth Mindset
-
-**We're building this together, learning as we go.**
-
-- Never contributed before? Perfect!
-- Not sure how something works? Ask!
-- Made a mistake? We all do!
-- Want to try something new? Go for it!
-
-**The goal is progress, not perfection.** 💪
-
----
-
 ## 🙏 Thank You!
 
 Every contribution makes this tool better.  
@@ -375,8 +208,3 @@ Every improvement helps more people contribute to open source.
 Every bug fix creates ripple effects of impact.
 
 **You're helping build a movement. Thank you!** 💚
-
----
-
-**Questions? Ask in [Discussions](https://github.com/thebyrdman-git/ansai-pull-requests/discussions) or [Discord](https://discord.gg/ansai-pr)!**
-

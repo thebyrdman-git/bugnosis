@@ -13,6 +13,7 @@ from .export import (export_bugs_json, export_bugs_csv, export_bugs_markdown,
                      export_stats_json, export_leaderboard)
 from .config import BugnosisConfig
 from .analytics import generate_insights
+from .copilot import BugFixCopilot
 import json
 
 
@@ -447,6 +448,125 @@ def cmd_config(args):
         print("Available: get, set")
 
 
+def cmd_copilot(args):
+    """AI Co-Pilot for guided bug fixing."""
+    if len(args) < 2:
+        print("Error: Repository and issue number required")
+        print("Usage: bugnosis copilot owner/repo issue-number")
+        sys.exit(1)
+        
+    repo = args[0]
+    issue_num = int(args[1])
+    token = os.environ.get('GITHUB_TOKEN')
+    groq_key = os.environ.get('GROQ_API_KEY')
+    
+    if not groq_key:
+        print("Error: GROQ_API_KEY required for AI Co-Pilot")
+        print("\nGet your free API key:")
+        print("1. Visit: https://console.groq.com/keys")
+        print("2. Create account (free)")
+        print("3. Generate API key")
+        print("4. Export: export GROQ_API_KEY=your_key")
+        sys.exit(1)
+    
+    print(f"\n🤖 Starting AI Co-Pilot for {repo}#{issue_num}...\n")
+    
+    # Fetch issue
+    client = GitHubClient(token=token)
+    issue = client.get_issue(repo, issue_num)
+    
+    if not issue:
+        print(f"Error: Could not fetch issue #{issue_num}")
+        sys.exit(1)
+    
+    # Initialize Co-Pilot
+    copilot = BugFixCopilot(api_key=groq_key)
+    
+    print("="*70)
+    print(f"Issue: {issue['title']}")
+    print(f"URL: {issue.get('html_url', 'N/A')}")
+    print("="*70)
+    print()
+    
+    # Step 1: Analyze
+    print("📊 Step 1: Deep Analysis")
+    print("-" * 70)
+    analysis = copilot.analyze_bug(issue)
+    
+    if analysis.get('success'):
+        print(analysis['analysis'])
+        print()
+    else:
+        print(f"Error: {analysis.get('error')}")
+        sys.exit(1)
+    
+    # Ask user to continue
+    response = input("\n👉 Continue to difficulty estimation? (y/n): ")
+    if response.lower() != 'y':
+        print("Co-Pilot session ended.")
+        return
+    
+    # Step 2: Difficulty
+    print("\n⚡ Step 2: Difficulty Estimation")
+    print("-" * 70)
+    difficulty = copilot.estimate_difficulty(issue)
+    
+    if difficulty.get('success'):
+        print(difficulty['estimate'])
+        print()
+    else:
+        print(f"Error: {difficulty.get('error')}")
+    
+    print("\n" + "="*70)
+    print("🎯 Co-Pilot Analysis Complete!")
+    print("="*70)
+    print("\nNext steps:")
+    print("1. Clone the repository")
+    print("2. Create a new branch")
+    print("3. Use the analysis above to implement the fix")
+    print("4. Test your changes")
+    print(f"5. Run: bugnosis generate-pr {repo} {issue_num} 'Your fix description'")
+    print()
+    print("💡 Tip: The Co-Pilot analyzed the bug for you. You implement the fix!")
+    print("     This keeps YOU in control while AI does the research.")
+
+
+def cmd_difficulty(args):
+    """Estimate bug difficulty."""
+    if len(args) < 2:
+        print("Error: Repository and issue number required")
+        print("Usage: bugnosis difficulty owner/repo issue-number")
+        sys.exit(1)
+        
+    repo = args[0]
+    issue_num = int(args[1])
+    token = os.environ.get('GITHUB_TOKEN')
+    groq_key = os.environ.get('GROQ_API_KEY')
+    
+    if not groq_key:
+        print("Error: GROQ_API_KEY required for difficulty estimation")
+        sys.exit(1)
+    
+    # Fetch issue
+    client = GitHubClient(token=token)
+    issue = client.get_issue(repo, issue_num)
+    
+    if not issue:
+        print(f"Error: Could not fetch issue #{issue_num}")
+        sys.exit(1)
+    
+    print(f"\nEstimating difficulty for: {issue['title']}\n")
+    
+    copilot = BugFixCopilot(api_key=groq_key)
+    result = copilot.estimate_difficulty(issue)
+    
+    if result.get('success'):
+        print(result['estimate'])
+        print(f"\n📊 Difficulty Level: {result['difficulty']}")
+    else:
+        print(f"Error: {result.get('error')}")
+
+
 def main():
     """Main CLI entry point."""
     args = sys.argv[1:]
@@ -470,6 +590,8 @@ Usage:
     bugnosis leaderboard <output-file>
     bugnosis diagnose <repo> <issue-number>
     bugnosis generate-pr <repo> <issue-number> "<what-you-fixed>"
+    bugnosis copilot <repo> <issue-number>
+    bugnosis difficulty <repo> <issue-number>
     bugnosis clear-cache
     bugnosis help
 
@@ -483,6 +605,8 @@ Examples:
     bugnosis export markdown BUGS.md --min-impact 90
     bugnosis leaderboard leaderboard.html
     bugnosis diagnose microsoft/vscode 23991
+    bugnosis copilot pytorch/pytorch 12345
+    bugnosis difficulty rust-lang/rust 54321
     bugnosis generate-pr wireguard-gui 123 "Fixed snap package build"
     bugnosis clear-cache
 
@@ -535,6 +659,12 @@ Get a token at: https://github.com/settings/tokens
         return
     elif command == 'config':
         cmd_config(args[1:])
+        return
+    elif command == 'copilot':
+        cmd_copilot(args[1:])
+        return
+    elif command == 'difficulty':
+        cmd_difficulty(args[1:])
         return
     elif command != 'scan':
         print(f"Unknown command: {command}")

@@ -5,23 +5,6 @@ use tauri::{
     Emitter, Manager, Runtime,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Bug {
-    repo: String,
-    issue_number: i32,
-    title: String,
-    url: String,
-    impact_score: i32,
-    affected_users: i32,
-    severity: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct ScanResult {
-    bugs: Vec<Bug>,
-    total_users: i32,
-}
-
 #[tauri::command]
 async fn search_ecosystem(query: String, min_impact: i32) -> Result<String, String> {
     use std::process::Command;

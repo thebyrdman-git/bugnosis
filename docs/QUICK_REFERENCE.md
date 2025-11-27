@@ -131,5 +131,5 @@ Bugnosis scores bugs 0-100 based on:
 ## More Help
 
 - Full documentation: https://github.com/thebyrdman-git/bugnosis
-- API reference: `docs/API.md`
-- Developer Guide: `DEVELOPERS.md`
+- API reference: `API.md`
+- Developer Guide: `../DEVELOPERS.md`

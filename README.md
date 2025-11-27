@@ -19,7 +19,7 @@ Bugnosis focuses on **High-Impact Opportunities**: bugs that affect thousands of
 *   **Smart Search:** Type "Firefox" or "Linux Kernel", and our AI resolves the targets across GitHub, GitLab, and Bugzilla.
 *   **Impact Scoring:** Every bug is scored (0-100) based on user base, severity, and time-to-fix.
 *   **Hero Profile:** Earn XP, rank up from *Script Kiddie* to *Ecosystem Guardian*, and unlock badges.
-*   **AI Co-Pilot:** An intelligent assistant that helps you diagnose issues, draft Pull Requests, and analyze rejections.
+*   **AI Co-Pilot:** An intelligent assistant that helps you diagnose issues, draft Pull Requests, and analyze rejections. [Read the Guide](docs/AI_COPILOT.md)
 *   **Privacy First:** Works offline. Local-first database.
 
 ## For Developers & Power Users

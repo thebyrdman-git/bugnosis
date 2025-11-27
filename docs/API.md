@@ -13,11 +13,8 @@ pip install -e /path/to/bugnosis/cli
 ```python
 from bugnosis import BugnosisAPI
 
-# Initialize API
-api = BugnosisAPI(
-    github_token="your_github_token",  # Optional but recommended
-    groq_key="your_groq_key"  # Optional, for AI features
-)
+# Initialize API (loads tokens from secure auth store)
+api = BugnosisAPI()
 
 # Scan a repository
 bugs = api.scan_repo("pytorch/pytorch", min_impact=85)
@@ -48,14 +45,14 @@ BugnosisAPI(
 ```
 
 **Parameters:**
-- `github_token`: GitHub personal access token (increases API rate limits)
-- `groq_key`: Groq API key for AI features
+- `github_token`: Optional override. Defaults to `keyring` storage or `GITHUB_TOKEN` env var.
+- `groq_key`: Optional override. Defaults to `GROQ_API_KEY` env var.
 - `use_cache`: Enable API response caching (default: True)
 - `db_path`: Custom database path (default: `~/.config/bugnosis/bugnosis.db`)
 
 **Example:**
 ```python
-api = BugnosisAPI(github_token="ghp_...", use_cache=True)
+api = BugnosisAPI(use_cache=True)
 ```
 
 #### scan_repo()
@@ -94,13 +91,6 @@ api.scan_multiple_repos(
 ) -> List[Bug]
 ```
 
-**Parameters:**
-- `repos`: List of repositories in `owner/repo` format
-- `min_impact`: Minimum impact score (0-100)
-- `save`: Save results to local database
-
-**Returns:** Combined list of bugs sorted by impact
-
 **Example:**
 ```python
 bugs = api.scan_multiple_repos([
@@ -121,18 +111,7 @@ api.diagnose_bug(
 ) -> Optional[str]
 ```
 
-**Parameters:**
-- `repo`: Repository in `owner/repo` format
-- `issue_number`: GitHub issue number
-
 **Returns:** AI diagnosis text or `None` if unavailable
-
-**Example:**
-```python
-diagnosis = api.diagnose_bug("pytorch/pytorch", 12345)
-if diagnosis:
-    print(diagnosis)
-```
 
 #### generate_pr()
 
@@ -145,13 +124,6 @@ api.generate_pr(
     fix_description: str
 ) -> Optional[str]
 ```
-
-**Parameters:**
-- `repo`: Repository in `owner/repo` format
-- `issue_number`: GitHub issue number
-- `fix_description`: Brief description of your fix
-
-**Returns:** Professional PR description or `None` if unavailable
 
 **Example:**
 ```python
@@ -173,16 +145,7 @@ api.get_saved_bugs(
 ) -> List[Dict]
 ```
 
-**Parameters:**
-- `min_impact`: Minimum impact score filter
-- `status`: Filter by status (e.g., `'discovered'`, `'fixed'`)
-
 **Returns:** List of bug dictionaries
-
-**Example:**
-```python
-high_impact_bugs = api.get_saved_bugs(min_impact=90)
-```
 
 #### record_contribution()
 
@@ -196,18 +159,6 @@ api.record_contribution(
     pr_url: str,
     impact_score: int,
     affected_users: int
-)
-```
-
-**Example:**
-```python
-api.record_contribution(
-    repo="pytorch/pytorch",
-    issue_number=12345,
-    pr_number=67890,
-    pr_url="https://github.com/pytorch/pytorch/pull/67890",
-    impact_score=95,
-    affected_users=100000
 )
 ```
 
@@ -225,12 +176,9 @@ api.get_stats() -> Dict
 - `avg_impact_score`: Average impact score
 - `merged_count`: Number of merged PRs
 
-**Example:**
-```python
-stats = api.get_stats()
-print(f"Total contributions: {stats['total_contributions']}")
-print(f"Users helped: {stats['total_users_helped']:,}")
-```
+#### close()
+
+Close database connection. Recommended to use context manager instead.
 
 ### Bug Object
 
@@ -255,7 +203,7 @@ Quick single-operation functions that auto-manage resources.
 ```python
 from bugnosis.api import scan
 
-bugs = scan("pytorch/pytorch", min_impact=85, github_token="...")
+bugs = scan("pytorch/pytorch", min_impact=85)
 ```
 
 ### diagnose()
@@ -263,7 +211,7 @@ bugs = scan("pytorch/pytorch", min_impact=85, github_token="...")
 ```python
 from bugnosis.api import diagnose
 
-diagnosis = diagnose("pytorch/pytorch", 12345, groq_key="...")
+diagnosis = diagnose("pytorch/pytorch", 12345)
 ```
 
 ### generate_pr_description()
@@ -274,8 +222,7 @@ from bugnosis.api import generate_pr_description
 pr_desc = generate_pr_description(
     "pytorch/pytorch",
     12345,
-    "Fixed memory leak",
-    groq_key="..."
+    "Fixed memory leak"
 )
 ```
 
@@ -284,204 +231,26 @@ pr_desc = generate_pr_description(
 BugnosisAPI supports context managers for automatic cleanup:
 
 ```python
-with BugnosisAPI(github_token="...") as api:
+with BugnosisAPI() as api:
     bugs = api.scan_repo("pytorch/pytorch")
     stats = api.get_stats()
 # Database connection automatically closed
 ```
 
-## Complete Examples
+## Cloud Sync & Auth (New)
 
-### Find and fix your first bug
+You can also manage authentication programmatically via the internal auth module, though the CLI `bugnosis auth` is preferred.
 
+To check connectivity:
 ```python
-from bugnosis import BugnosisAPI
-
-# Initialize
-api = BugnosisAPI(github_token="ghp_...")
-
-# Scan popular repo
-bugs = api.scan_repo("pytorch/pytorch", min_impact=85, save=True)
-
-# Pick the top bug
-top_bug = bugs[0]
-print(f"Fix this: {top_bug.title}")
-print(f"Impact: {top_bug.impact_score}/100")
-print(f"Users affected: ~{top_bug.affected_users:,}")
-print(f"URL: {top_bug.url}")
-
-# Get AI diagnosis
-diagnosis = api.diagnose_bug(top_bug.repo, top_bug.issue_number)
-print(f"\nDiagnosis:\n{diagnosis}")
-
-# After you fix it, generate PR description
-pr_desc = api.generate_pr(
-    top_bug.repo,
-    top_bug.issue_number,
-    "Your fix description here"
-)
-print(f"\nPR Description:\n{pr_desc}")
-
-# Record your contribution
-api.record_contribution(
-    repo=top_bug.repo,
-    issue_number=top_bug.issue_number,
-    pr_number=12345,  # Your PR number
-    pr_url="https://github.com/.../pull/12345",
-    impact_score=top_bug.impact_score,
-    affected_users=top_bug.affected_users
-)
-
-api.close()
-```
-
-### Batch scan multiple projects
-
-```python
-from bugnosis.api import scan
-
-# Scan multiple repos at once
-repos = [
-    "rust-lang/rust",
-    "python/cpython",
-    "pytorch/pytorch",
-    "tensorflow/tensorflow"
-]
-
-bugs = scan_multiple_repos(repos, min_impact=80, github_token="...")
-
-# Group by repo
-by_repo = {}
-for bug in bugs:
-    if bug.repo not in by_repo:
-        by_repo[bug.repo] = []
-    by_repo[bug.repo].append(bug)
-
-# Print summary
-for repo, repo_bugs in by_repo.items():
-    print(f"\n{repo}: {len(repo_bugs)} high-impact bugs")
-    total_impact = sum(b.affected_users for b in repo_bugs)
-    print(f"Total potential users helped: ~{total_impact:,}")
-```
-
-### Track your impact over time
-
-```python
-from bugnosis import BugnosisAPI
-
-with BugnosisAPI() as api:
-    # Get all saved bugs
-    all_bugs = api.get_saved_bugs()
-    
-    # Get your stats
-    stats = api.get_stats()
-    
-    print(f"Bugs tracked: {len(all_bugs)}")
-    print(f"Contributions made: {stats['total_contributions']}")
-    print(f"Total users helped: {stats['total_users_helped']:,}")
-    print(f"Average impact: {stats['avg_impact_score']}/100")
-    
-    # Calculate time saved (assume 30min saved per user)
-    hours_saved = stats['total_users_helped'] * 0.5
-    print(f"Collective time saved: ~{hours_saved:,.0f} hours")
-```
-
-## Environment Variables
-
-- `GITHUB_TOKEN`: GitHub personal access token
-- `GROQ_API_KEY`: Groq API key for AI features
-
-## AI Co-Pilot
-
-Use AI Co-Pilot for guided bug fixing:
-
-```python
-from bugnosis.copilot import BugFixCopilot
-
-# Initialize Co-Pilot
-copilot = BugFixCopilot(api_key="your_groq_key")
-
-# Get a GitHub issue
-issue = {
-    "number": 12345,
-    "title": "Memory leak in cache",
-    "body": "Detailed description...",
-    "html_url": "https://github.com/..."
-}
-
-# Deep analysis
-analysis = copilot.analyze_bug(issue)
-print(analysis['analysis'])
-
-# Estimate difficulty
-difficulty = copilot.estimate_difficulty(issue)
-print(f"Difficulty: {difficulty['difficulty']}")
-print(f"Estimate: {difficulty['estimate']}")
-
-# Generate code fix
-fix = copilot.generate_fix(
-    issue=issue,
-    file_path="src/cache.py",
-    file_content=open("src/cache.py").read(),
-    analysis=analysis['analysis']
-)
-print(fix['fix'])
-
-# Review changes before committing
-review = copilot.review_changes(
-    original_code=old_code,
-    fixed_code=new_code,
-    file_path="src/cache.py"
-)
-print(f"Review Status: {review['status']}")
-print(review['review'])
-
-# Generate tests
-tests = copilot.generate_tests(
-    issue=issue,
-    fix_description="Fixed memory leak in cache cleanup",
-    test_framework="pytest"
-)
-print(tests['tests'])
-
-# Generate PR description
-pr = copilot.generate_pr_description(
-    issue=issue,
-    changes_summary="Updated cache cleanup logic",
-    testing_done="Added 5 tests, all passing"
-)
-print(pr['pr_description'])
-```
-
-See [AI_COPILOT.md](AI_COPILOT.md) for full documentation.
-
-## Error Handling
-
-All API methods return `None` or empty lists on errors instead of raising exceptions:
-
-```python
-bugs = api.scan_repo("invalid/repo")
-# Returns [] if repo doesn't exist
-
-diagnosis = api.diagnose_bug("repo", 99999)
-# Returns None if issue doesn't exist or AI unavailable
-```
-
-## Rate Limits
-
-- **Without GitHub token**: 60 requests/hour
-- **With GitHub token**: 5,000 requests/hour
-- **Caching enabled**: Dramatically reduces API calls
-
-Enable caching (default) to maximize your rate limits:
-
-```python
-api = BugnosisAPI(github_token="...", use_cache=True)
+api = BugnosisAPI()
+if api.online:
+    print("Connected to Bugnosis Network")
+else:
+    print("Offline Mode: Using local database")
 ```
 
 ## Support
 
 For issues, feature requests, or contributions:
 https://github.com/thebyrdman-git/bugnosis
-
-

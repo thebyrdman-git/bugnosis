@@ -14,6 +14,27 @@ Bugnosis Co-Pilot is different:
 - **YOU make decisions** - Approve, reject, or modify at each step
 - **YOU stay in control** - It's your fix, AI just accelerates you
 
+---
+
+## 🎓 Rejection Coaching (Post-Mortem)
+
+Rejections hurt. But they are the fastest way to learn.
+
+Bugnosis includes a **Coaching Engine** that analyzes closed or rejected Pull Requests.
+
+```bash
+# Analyze a rejected PR
+bugnosis coach pytorch/pytorch 12345
+```
+
+**What it does:**
+1.  Reads maintainer comments and code review.
+2.  Identifies the **Root Cause** (e.g., "Code Style", "Duplicate", "Wrong Approach").
+3.  Provides **Actionable Advice** for next time.
+4.  Awards "Resilience XP" (because trying matters).
+
+---
+
 ## How It Works
 
 ```bash
@@ -263,4 +284,3 @@ This is how AI should work with humans:
 - Result is better than either alone
 
 You're not replacing developers. You're making developers superhuman.
-

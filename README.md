@@ -19,8 +19,20 @@ Bugnosis focuses on **High-Impact Opportunities**: bugs that affect thousands of
 *   **Smart Search:** Type "Firefox" or "Linux Kernel", and our AI resolves the targets across GitHub, GitLab, and Bugzilla.
 *   **Impact Scoring:** Every bug is scored (0-100) based on user base, severity, and time-to-fix.
 *   **Hero Profile:** Earn XP, rank up from *Script Kiddie* to *Ecosystem Guardian*, and unlock badges.
-*   **AI Co-Pilot:** An intelligent assistant that helps you diagnose issues and draft Pull Requests (you stay in control).
-*   **Privacy First:** Works offline. Local-first database. You choose what to sync.
+*   **AI Co-Pilot:** An intelligent assistant that helps you diagnose issues, draft Pull Requests, and analyze rejections.
+*   **Privacy First:** Works offline. Local-first database.
+
+## For Developers & Power Users
+
+We built Bugnosis to be a serious engineering tool.
+
+*   **System Doctor:** `bugnosis doctor` checks your environment (Podman, Git, Python).
+*   **Cloud Sync:** `bugnosis sync push` backs up your profile to a private GitHub Gist (Config-as-Code).
+*   **Secure Auth:** `bugnosis auth login` stores tokens in your system keyring.
+*   **Rejection Coaching:** `bugnosis coach` performs AI post-mortems on closed PRs to help you learn.
+*   **Plugin System:** Extend the core with custom Python modules in `~/.bugnosis/plugins`.
+
+[Read the Developer Guide](DEVELOPERS.md)
 
 ## Getting Started
 
@@ -56,8 +68,8 @@ bugnosis smart-scan "python requests library"
 We are building the "Antivirus for Open Source Bugs".
 
 *   **Phase 1:** Impact Engine & Smart Search (Current)
-*   **Phase 2:** AI Co-Pilot & Rejection Coaching
-*   **Phase 3:** Cloud Sync & Community Leaderboards
+*   **Phase 2:** AI Co-Pilot & Rejection Coaching (Current)
+*   **Phase 3:** Cloud Sync & Community Leaderboards (In Progress)
 
 [View the full Roadmap](ROADMAP.md)
 

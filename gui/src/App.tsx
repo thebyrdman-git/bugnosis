@@ -95,12 +95,29 @@ function App() {
   const [scanResult, setScanResult] = useState('');
   const [savedBugs, setSavedBugs] = useState<any[]>([]);
   const [savedBugsError, setSavedBugsError] = useState('');
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [watchedRepos, setWatchedRepos] = useState<string[]>([]);
+  const [insights, setInsights] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
   const [theme, setTheme] = useState('light');
 
-  // ...
+  // Mock Hero Data (to be connected to backend later)
+  const heroLevel = Math.floor(((stats?.total_users || 0) / 1000)) + 1;
+  const currentXP = (stats?.total_users || 0) % 1000;
+  const nextLevelXP = 1000;
+  const rankTitle = heroLevel > 50 ? "Ecosystem Guardian" : heroLevel > 20 ? "Bug Slayer" : heroLevel > 5 ? "Field Operator" : "Script Kiddie";
 
   useEffect(() => {
-    // ... existing code ...
+    loadWatchedRepos();
+    loadStats();
+    checkOnline();
+
+    const interval = setInterval(checkOnline, 30000);
+    
+    const unlisten = listen('trigger-scan', () => {
+      handleScanWatched();
+    });
     
     // Load theme from local storage or default
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -113,6 +130,11 @@ function App() {
 
     // Auto-load saved bugs if we start in Saved tab or just in background
     handleLoadSaved(); 
+    
+    return () => {
+      clearInterval(interval);
+      unlisten.then(fn => fn());
+    };
   }, []);
 
   const toggleTheme = () => {
@@ -126,7 +148,112 @@ function App() {
     }
   };
 
-  // ...
+  const checkOnline = async () => {
+    try {
+      const online = await invoke<boolean>('check_online_status');
+      setIsOnline(online);
+    } catch (e) {
+      console.error('Failed to check online status', e);
+    }
+  };
+
+  const loadWatchedRepos = async () => {
+    try {
+      const result = await invoke<string>('get_watched_repos');
+      const repos = result.split('\n')
+        .filter(line => line.trim().startsWith('-'))
+        .map(line => line.replace(/^[\s-]+/, '').trim());
+      setWatchedRepos(repos);
+    } catch (error) {
+      console.error('Failed to load watched repos:', error);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const result = await invoke<string>('get_stats');
+      const lines = result.split('\n');
+      const bugsLine = lines.find(l => l.includes('Bugs tracked:'));
+      const contribLine = lines.find(l => l.includes('Contributions:'));
+      const usersLine = lines.find(l => l.includes('Users helped:'));
+      const impactLine = lines.find(l => l.includes('Average impact:'));
+      
+      if (bugsLine && contribLine && usersLine && impactLine) {
+        setStats({
+          total_bugs: parseInt(bugsLine.split(':')[1].trim()) || 0,
+          total_contributions: parseInt(contribLine.split(':')[1].trim()) || 0,
+          total_users: parseInt(usersLine.split(':')[1].replace(/,/g, '').trim()) || 0,
+          avg_impact: parseInt(impactLine.split(':')[1].split('/')[0].trim()) || 0,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!repoInput.trim()) {
+      alert('Please enter a search term (e.g. "Firefox", "React", "Linux")');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await invoke<string>('search_ecosystem', {
+        query: repoInput,
+        minImpact: minImpact
+      });
+      setScanResult(result);
+      await sendNotification({
+        title: 'Search Complete',
+        body: `Found opportunities for ${repoInput}`
+      });
+      loadStats();
+    } catch (error) {
+      setScanResult(`Error: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddWatch = async () => {
+    if (!repoInput.trim()) {
+      alert('Please enter a repository name (owner/repo)');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await invoke<string>('add_watched_repo', { repo: repoInput });
+      await loadWatchedRepos();
+      setRepoInput('');
+      await sendNotification({
+        title: 'Repository Added',
+        body: `Now watching ${repoInput}`
+      });
+    } catch (error) {
+      alert(`Error: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleScanWatched = async () => {
+    setLoading(true);
+    try {
+      const result = await invoke<string>('scan_watched');
+      setScanResult(result);
+      await sendNotification({
+        title: 'Watch Scan Complete',
+        body: 'Scanned all watched repositories'
+      });
+      loadStats();
+    } catch (error) {
+      setScanResult(`Error: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLoadSaved = async () => {
     setLoading(true);

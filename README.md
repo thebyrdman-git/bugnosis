@@ -1,10 +1,12 @@
 # Bugnosis
 
+<div align="center">
+  <img src="gui/public/bug-logo.png" width="150" alt="Bugnosis Hero Dashboard">
+</div>
+
 **Diagnose bugs. Help thousands. Automate giving back.**
 
 Bugnosis is an AI-powered platform that turns open source contribution into a high-impact, gamified experience. It finds the bugs that matter most, helps you fix them with AI, and tracks the real-world impact of your work.
-
-![Bugnosis Hero Dashboard](gui/public/bug-logo.png)
 
 ## The Mission
 

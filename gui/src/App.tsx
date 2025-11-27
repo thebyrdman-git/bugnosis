@@ -18,7 +18,6 @@ import {
   Target,
   Share2,
   Lock,
-  Wifi,
   WifiOff,
   Moon,
   Sun
@@ -266,22 +265,6 @@ function App() {
       }
     } catch (error) {
       setSavedBugsError(`Error: ${error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLoadInsights = async () => {
-    setLoading(true);
-    try {
-      const result = await invoke<string>('get_insights', {
-        minImpact: minImpact
-      });
-      // setInsights(result); // Unused
-      console.log("Insights loaded:", result);
-    } catch (error) {
-      // setInsights(`Error: ${error}`); // Unused
-      console.error("Error loading insights:", error);
     } finally {
       setLoading(false);
     }

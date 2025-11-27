@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='bugnosis',
-    version='0.1.0',
+    version='1.0.0',
     description='Find high-impact bugs to fix in open source',
     author='Bugnosis Contributors',
     packages=find_packages(),

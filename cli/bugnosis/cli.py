@@ -14,6 +14,8 @@ from .export import (export_bugs_json, export_bugs_csv, export_bugs_markdown,
 from .config import BugnosisConfig
 from .analytics import generate_insights
 from .copilot import BugFixCopilot
+from .platforms import get_platform, list_platforms
+from .plugins import PluginManager
 import json
 
 
@@ -567,6 +569,313 @@ def cmd_difficulty(args):
         print(f"Error: {result.get('error')}")
 
 
+def cmd_scan_platform(args):
+    """Scan a bug tracking platform."""
+    if len(args) < 2:
+        print("Error: Platform and project required")
+        print("Usage: bugnosis scan-platform <platform> <project> [options]")
+        print("\nAvailable platforms:")
+        for platform in list_platforms():
+            print(f"  - {platform}")
+        sys.exit(1)
+    
+    platform_name = args[0]
+    project = args[1]
+    
+    # Parse options
+    min_impact = 70
+    save_results = False
+    instance = None
+    
+    i = 2
+    while i < len(args):
+        if args[i] == '--min-impact' and i + 1 < len(args):
+            min_impact = int(args[i + 1])
+            i += 2
+        elif args[i] == '--save':
+            save_results = True
+            i += 1
+        elif args[i] == '--instance' and i + 1 < len(args):
+            instance = args[i + 1]
+            i += 2
+        else:
+            i += 1
+    
+    print(f"\n🔍 Scanning {platform_name.upper()}: {project}")
+    print(f"   Minimum impact: {min_impact}")
+    print()
+    
+    try:
+        # Initialize platform
+        kwargs = {}
+        if instance:
+            kwargs['instance'] = instance
+        
+        platform = get_platform(platform_name, **kwargs)
+        
+        # Search bugs
+        bugs = platform.search_bugs(project, min_impact=min_impact)
+        
+        if not bugs:
+            print(f"No bugs found with impact >= {min_impact}")
+            return
+        
+        print(f"Found {len(bugs)} high-impact bugs:\n")
+        
+        # Print bugs
+        for i, bug in enumerate(bugs, 1):
+            # Impact indicator
+            if bug.impact_score >= 90:
+                indicator = "🔴"
+            elif bug.impact_score >= 80:
+                indicator = "🟠"
+            else:
+                indicator = "🟡"
+            
+            print(f"{indicator} [{i}] {bug.title}")
+            print(f"    Platform: {bug.platform}")
+            print(f"    Impact: {bug.impact_score}/100 | Users: ~{bug.affected_users:,}")
+            print(f"    Severity: {bug.severity} | Status: {bug.status}")
+            print(f"    URL: {bug.url}")
+            print()
+        
+        # Save if requested
+        if save_results:
+            db = BugDatabase()
+            for bug in bugs:
+                db.save_bug(
+                    repo=f"{bug.platform}:{bug.repo}",
+                    issue_number=bug.issue_number,
+                    title=bug.title,
+                    url=bug.url,
+                    impact_score=bug.impact_score,
+                    affected_users=bug.affected_users,
+                    severity=bug.severity,
+                    labels=bug.labels,
+                    comments=bug.comments_count,
+                    created_at=bug.created_at.isoformat() if bug.created_at else None,
+                    updated_at=bug.updated_at.isoformat() if bug.updated_at else None
+                )
+            db.close()
+            print(f"✅ Saved {len(bugs)} bugs to database")
+        
+        # Print summary
+        print("\n" + "="*60)
+        print(f"Total bugs found: {len(bugs)}")
+        total_users = sum(bug.affected_users for bug in bugs)
+        print(f"Potential users helped: ~{total_users:,}")
+        avg_impact = sum(bug.impact_score for bug in bugs) / len(bugs)
+        print(f"Average impact: {avg_impact:.1f}/100")
+        print("="*60)
+        
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error scanning platform: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+def cmd_platforms():
+    """List available bug tracking platforms."""
+    print("\n🌐 Available Bug Tracking Platforms:\n")
+    
+    print("1. GitHub (github)")
+    print("   - Default platform")
+    print("   - Usage: bugnosis scan owner/repo")
+    print()
+    
+    print("2. GitLab (gitlab)")
+    print("   - GitLab.com and self-hosted instances")
+    print("   - Usage: bugnosis scan-platform gitlab owner/repo")
+    print("   - Token: GITLAB_TOKEN environment variable")
+    print()
+    
+    print("3. Bugzilla (bugzilla)")
+    print("   - Mozilla, Red Hat, KDE, GNOME, Kernel.org")
+    print("   - Usage: bugnosis scan-platform bugzilla ProductName --instance mozilla")
+    print("   - Instances: mozilla, redhat, kde, gnome, kernel")
+    print("   - Token: BUGZILLA_TOKEN environment variable")
+    print()
+    
+    print("Examples:")
+    print("  bugnosis scan pytorch/pytorch")
+    print("  bugnosis scan-platform gitlab gitlab-org/gitlab")
+    print("  bugnosis scan-platform bugzilla Firefox --instance mozilla")
+    print()
+    
+    print("Coming soon: Jira, Launchpad, SourceForge, Bitbucket")
+    print()
+
+
+def cmd_smart_scan(args):
+    """AI-powered smart scan that resolves platform from query."""
+    if len(args) < 1:
+        print("Error: Query required")
+        print("Usage: bugnosis smart-scan \"query\" [options]")
+        sys.exit(1)
+        
+    query = args[0]
+    min_impact = 70
+    
+    i = 1
+    while i < len(args):
+        if args[i] == '--min-impact' and i + 1 < len(args):
+            min_impact = int(args[i + 1])
+            i += 2
+        else:
+            i += 1
+            
+    print(f"Analyzing query: '{query}'...")
+    
+    # Resolve target
+    ai = AIEngine()
+    target = ai.resolve_target(query)
+    
+    platform_name = target.get('platform', 'github')
+    project = target.get('target')
+    instance = target.get('instance')
+    
+    if not project:
+        print("Could not resolve repository from query.")
+        sys.exit(1)
+        
+    print(f"🎯 Target Resolved: {platform_name.upper()} -> {project}")
+    if instance:
+        print(f"   Instance: {instance}")
+        
+    # Delegate to platform scan
+    scan_args = [platform_name, project, '--min-impact', str(min_impact)]
+    if instance:
+        scan_args.extend(['--instance', instance])
+        
+    # Add --save by default for smart scans in GUI context? 
+    # No, let user decide or GUI pass flag. GUI doesn't pass --save currently.
+    
+    cmd_scan_platform(scan_args)
+
+
+def cmd_search(args):
+    """Federated search across multiple platforms."""
+    if len(args) < 1:
+        print("Error: Query required")
+        print("Usage: bugnosis search \"query\" [options]")
+        sys.exit(1)
+        
+    query = args[0]
+    min_impact = 70
+    save_results = False
+    
+    i = 1
+    while i < len(args):
+        if args[i] == '--min-impact' and i + 1 < len(args):
+            min_impact = int(args[i + 1])
+            i += 2
+        elif args[i] == '--save':
+            save_results = True
+            i += 1
+        else:
+            i += 1
+            
+    print(f"🔎 Searching bug ecosystem for: '{query}'")
+    print(f"   Minimum impact: {min_impact}")
+    print()
+    
+    from .federated import FederatedSearch
+    
+    engine = FederatedSearch(min_impact=min_impact)
+    results = engine.search(query)
+    
+    bugs = results.get('results', [])
+    stats = results.get('stats', {})
+    targets = results.get('targets_scanned', [])
+    
+    # Show targets scanned
+    print("Targets identified:")
+    for t in targets:
+        print(f" - {t['platform'].upper()}: {t['target']}")
+    print()
+    
+    if not bugs:
+        print(f"No high-impact bugs found for '{query}'.")
+        return
+        
+    # Show results
+    print(f"Found {len(bugs)} opportunities across platforms:\n")
+    
+    for i, bug in enumerate(bugs, 1):
+        # Impact indicator
+        if bug.impact_score >= 90:
+            indicator = "🔥"
+        elif bug.impact_score >= 80:
+            indicator = "⭐"
+        else:
+            indicator = "✨"
+        
+        # Platform icon
+        plat_icon = "🐙" if bug.platform == 'github' else "🦊" if bug.platform == 'gitlab' else "🐛"
+        
+        print(f"{indicator} [{i}] {bug.title}")
+        print(f"    {plat_icon} {bug.platform.upper()} | {bug.repo}")
+        print(f"    Impact: {bug.impact_score}/100 | Users: ~{bug.affected_users:,}")
+        print(f"    Severity: {bug.severity} | Status: {bug.status}")
+        print(f"    URL: {bug.url}")
+        print()
+        
+    # Show stats
+    print("="*60)
+    print("Source Breakdown:")
+    for platform, count in stats.items():
+        if count > 0:
+            print(f"  {platform.capitalize()}: {count}")
+    print(f"\nTotal: {len(bugs)} bugs")
+    print("="*60)
+    
+    if save_results:
+        db = BugDatabase()
+        for bug in bugs:
+            db.save_bug(
+                repo=f"{bug.platform}:{bug.repo}",
+                issue_number=bug.issue_number,
+                title=bug.title,
+                url=bug.url,
+                impact_score=bug.impact_score,
+                affected_users=bug.affected_users,
+                severity=bug.severity,
+                labels=bug.labels,
+                comments=bug.comments_count,
+                created_at=bug.created_at.isoformat() if bug.created_at else None,
+                updated_at=bug.updated_at.isoformat() if bug.updated_at else None
+            )
+        db.close()
+        print(f"\n✅ Saved {len(bugs)} bugs to database")
+
+
+def cmd_plugins(args):
+    """Manage plugins."""
+    if len(args) < 1:
+        # List plugins
+        manager = PluginManager()
+        manager.load_plugins()
+        plugins = manager.list_plugins()
+        
+        print("\n🧩 Installed Plugins:\n")
+        if not plugins:
+            print("No plugins installed.")
+            print("Drop .py files into ~/.bugnosis/plugins/ to extend functionality.")
+            return
+            
+        for p in plugins:
+            print(f"- {p['name']} (v{p['version']})")
+            print(f"  {p['description']}")
+        print()
+        return
+
+    print("Plugin management commands coming soon.")
+
+
 def main():
     """Main CLI entry point."""
     args = sys.argv[1:]
@@ -578,6 +887,8 @@ Bugnosis - Find high-impact bugs to fix
 Usage:
     bugnosis scan <repo> [options]
     bugnosis scan-multi <repo1> <repo2> ... [options]
+    bugnosis scan-platform <platform> <project> [options]
+    bugnosis platforms
     bugnosis list [--min-impact N]
     bugnosis stats
     bugnosis insights [--min-impact N]
@@ -596,18 +907,33 @@ Usage:
     bugnosis help
 
 Examples:
+    # GitHub (default)
     bugnosis scan pytorch/pytorch
+    
+    # Other platforms
+    bugnosis scan-platform gitlab gitlab-org/gitlab --min-impact 80
+    bugnosis scan-platform bugzilla Firefox --instance mozilla
+    bugnosis platforms
+    
+    # Multi-repo
     bugnosis scan-multi rust-lang/rust python/cpython --min-impact 80
+    
+    # Analysis
     bugnosis list --min-impact 85
     bugnosis stats
+    bugnosis insights
+    
+    # Export
     bugnosis export json bugs.json --min-impact 85
-    bugnosis export csv bugs.csv
-    bugnosis export markdown BUGS.md --min-impact 90
     bugnosis leaderboard leaderboard.html
-    bugnosis diagnose microsoft/vscode 23991
+    
+    # AI Features
     bugnosis copilot pytorch/pytorch 12345
     bugnosis difficulty rust-lang/rust 54321
+    bugnosis diagnose microsoft/vscode 23991
     bugnosis generate-pr wireguard-gui 123 "Fixed snap package build"
+    
+    # Maintenance
     bugnosis clear-cache
 
 Options:
@@ -665,6 +991,15 @@ Get a token at: https://github.com/settings/tokens
         return
     elif command == 'difficulty':
         cmd_difficulty(args[1:])
+        return
+    elif command == 'scan-platform':
+        cmd_scan_platform(args[1:])
+        return
+    elif command == 'platforms':
+        cmd_platforms()
+        return
+    elif command == 'plugins':
+        cmd_plugins(args[1:])
         return
     elif command != 'scan':
         print(f"Unknown command: {command}")

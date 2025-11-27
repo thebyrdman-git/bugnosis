@@ -5,10 +5,8 @@ import { listen } from '@tauri-apps/api/event';
 import { 
   Search, 
   Eye, 
-  List, 
   Plus,
   Play,
-  BarChart3,
   Shield,
   ShieldAlert,
   ShieldCheck,
@@ -32,15 +30,6 @@ interface Stats {
   total_users: number;
   total_contributions: number;
   avg_impact: number;
-}
-
-interface Mission {
-  id: string;
-  title: string;
-  xp: number;
-  type: 'bug' | 'streak' | 'learning';
-  progress: number;
-  total: number;
 }
 
 // Helper component for Bug Cards
@@ -89,7 +78,7 @@ const BugCard = ({ bug }: { bug: any }) => {
 
 function App() {
   const [activeTab, setActiveTab] = useState('scan');
-  const [selectedPlatform, setSelectedPlatform] = useState('github');
+  // const [selectedPlatform, setSelectedPlatform] = useState('github'); // Unused
   const [repoInput, setRepoInput] = useState('');
   const [minImpact, setMinImpact] = useState(70);
   const [scanResult, setScanResult] = useState('');
@@ -97,7 +86,7 @@ function App() {
   const [savedBugsError, setSavedBugsError] = useState('');
   const [stats, setStats] = useState<Stats | null>(null);
   const [watchedRepos, setWatchedRepos] = useState<string[]>([]);
-  const [insights, setInsights] = useState('');
+  // const [insights, setInsights] = useState(''); // Unused
   const [loading, setLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [theme, setTheme] = useState('light');
@@ -288,9 +277,11 @@ function App() {
       const result = await invoke<string>('get_insights', {
         minImpact: minImpact
       });
-      setInsights(result);
+      // setInsights(result); // Unused
+      console.log("Insights loaded:", result);
     } catch (error) {
-      setInsights(`Error: ${error}`);
+      // setInsights(`Error: ${error}`); // Unused
+      console.error("Error loading insights:", error);
     } finally {
       setLoading(false);
     }

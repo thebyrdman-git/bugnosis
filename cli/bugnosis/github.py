@@ -37,3 +37,42 @@ class GitHubClient:
             return data
         return None
 
+    def get_user(self) -> Optional[Dict]:
+        """Get current authenticated user."""
+        if not self.token:
+            return None
+        resp = self.session.get('https://api.github.com/user')
+        return resp.json() if resp.status_code == 200 else None
+
+    def create_gist(self, files: Dict[str, Dict[str, str]], description: str, public: bool = False) -> Optional[Dict]:
+        """Create a GitHub Gist."""
+        if not self.token:
+            raise ValueError("Token required to create gist")
+            
+        url = 'https://api.github.com/gists'
+        payload = {
+            'description': description,
+            'public': public,
+            'files': files
+        }
+        resp = self.session.post(url, json=payload)
+        return resp.json() if resp.status_code == 201 else None
+
+    def update_gist(self, gist_id: str, files: Dict[str, Dict[str, str]]) -> Optional[Dict]:
+        """Update an existing Gist."""
+        if not self.token:
+            raise ValueError("Token required to update gist")
+            
+        url = f'https://api.github.com/gists/{gist_id}'
+        resp = self.session.patch(url, json={'files': files})
+        return resp.json() if resp.status_code == 200 else None
+
+    def get_gist(self, gist_id: str) -> Optional[Dict]:
+        """Fetch a Gist."""
+        if not self.token:
+            raise ValueError("Token required to fetch gist")
+            
+        url = f'https://api.github.com/gists/{gist_id}'
+        resp = self.session.get(url)
+        return resp.json() if resp.status_code == 200 else None
+

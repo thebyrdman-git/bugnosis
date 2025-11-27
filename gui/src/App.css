@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 body {
-  background: linear-gradient(to bottom right, #f8fafc, #f1f5f9);
+  background: linear-gradient(to bottom right, #f0fdf4, #dcfce7);
   min-height: 100vh;
 }
 
 @media (prefers-color-scheme: dark) {
   body {
-    background: linear-gradient(to bottom right, #0f172a, #1e293b);
+    background: linear-gradient(to bottom right, #14532d, #166534);
   }
 }

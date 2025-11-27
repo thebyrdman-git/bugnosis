@@ -24,7 +24,7 @@
     },
     "trayIcon": {
       "iconPath": "icons/32x32.png",
-      "iconAsTemplate": true,
+      "iconAsTemplate": false,
       "menuOnLeftClick": false,
       "tooltip": "Bugnosis - Find high-impact bugs"
     }
@@ -39,20 +39,5 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
-  },
-  "plugins": {
-    "shell": {
-      "open": true,
-      "scope": [
-        {
-          "name": "bugnosis",
-          "cmd": "bugnosis",
-          "args": true
-        }
-      ]
-    },
-    "notification": {
-      "all": true
-    }
   }
 }

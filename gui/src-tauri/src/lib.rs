@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager, Runtime,
+    Emitter, Manager, Runtime,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -23,12 +23,12 @@ struct ScanResult {
 }
 
 #[tauri::command]
-async fn scan_repo(repo: String, min_impact: i32) -> Result<String, String> {
+async fn search_ecosystem(query: String, min_impact: i32) -> Result<String, String> {
     use std::process::Command;
     
     let output = Command::new("bugnosis")
-        .arg("scan")
-        .arg(&repo)
+        .arg("search")
+        .arg(&query)
         .arg("--min-impact")
         .arg(min_impact.to_string())
         .output()
@@ -49,6 +49,7 @@ async fn get_saved_bugs(min_impact: i32) -> Result<String, String> {
         .arg("list")
         .arg("--min-impact")
         .arg(min_impact.to_string())
+        .arg("--json")
         .output()
         .map_err(|e| format!("Failed to execute bugnosis: {}", e))?;
     
@@ -145,6 +146,21 @@ async fn get_insights(min_impact: i32) -> Result<String, String> {
     }
 }
 
+#[tauri::command]
+async fn check_online_status() -> bool {
+    // Simple check: try to connect to 8.8.8.8:53
+    use std::net::TcpStream;
+    use std::time::Duration;
+    
+    match TcpStream::connect_timeout(
+        &"8.8.8.8:53".parse().unwrap(), 
+        Duration::from_millis(1500)
+    ) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
+
 fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
     let quit_i = MenuItem::with_id(app, "quit", "Quit Bugnosis", true, None::<&str>)?;
     let show_i = MenuItem::with_id(app, "show", "Show Window", true, None::<&str>)?;
@@ -155,7 +171,7 @@ fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
     let _tray = TrayIconBuilder::new()
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&menu)
-        .menu_on_left_click(false)
+        .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
@@ -208,13 +224,14 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            scan_repo,
+            search_ecosystem,
             get_saved_bugs,
             get_stats,
             get_watched_repos,
             add_watched_repo,
             scan_watched,
-            get_insights
+            get_insights,
+            check_online_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

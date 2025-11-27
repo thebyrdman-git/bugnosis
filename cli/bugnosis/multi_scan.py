@@ -32,3 +32,5 @@ def scan_multiple_repos(repos: List[str], min_impact: int = 70,
     return all_bugs
 
 
+
+

@@ -20,12 +20,24 @@ Example:
 """
 
 from typing import List, Dict, Optional
+import socket
+import logging
 from .scanner import GitHubScanner, Bug
 from .ai import AIEngine
 from .github import GitHubClient
 from .storage import BugDatabase
 from .multi_scan import scan_multiple_repos
 
+logger = logging.getLogger(__name__)
+
+def is_online() -> bool:
+    """Check if internet connection is available."""
+    try:
+        # Try to connect to a reliable DNS
+        socket.create_connection(("8.8.8.8", 53), timeout=2)
+        return True
+    except OSError:
+        return False
 
 class BugnosisAPI:
     """
@@ -38,6 +50,7 @@ class BugnosisAPI:
         ai: AI engine for diagnosis and PR generation
         github: GitHub API client
         db: Local bug database
+        online: Boolean indicating connectivity status
     """
     
     def __init__(self, 
@@ -54,10 +67,18 @@ class BugnosisAPI:
             use_cache: Enable API response caching (default: True)
             db_path: Custom database path (default: ~/.config/bugnosis/bugnosis.db)
         """
-        self.scanner = GitHubScanner(token=github_token)
-        self.ai = AIEngine(api_key=groq_key)
-        self.github = GitHubClient(token=github_token, use_cache=use_cache)
+        self.online = is_online()
         self.db = BugDatabase(db_path=db_path)
+        
+        if self.online:
+            self.scanner = GitHubScanner(token=github_token)
+            self.ai = AIEngine(api_key=groq_key)
+            self.github = GitHubClient(token=github_token, use_cache=use_cache)
+        else:
+            logger.warning("Offline mode detected. API functionality will be limited to local data.")
+            self.scanner = None
+            self.ai = None
+            self.github = None
         
     def scan_repo(self, 
                   repo: str, 
@@ -66,6 +87,8 @@ class BugnosisAPI:
         """
         Scan a repository for high-impact bugs.
         
+        If offline, searches local database for previously saved bugs.
+        
         Args:
             repo: Repository in owner/repo format
             min_impact: Minimum impact score (0-100)
@@ -73,12 +96,40 @@ class BugnosisAPI:
             
         Returns:
             List of Bug objects sorted by impact score
-            
-        Example:
-            >>> bugs = api.scan_repo("pytorch/pytorch", min_impact=85)
-            >>> for bug in bugs:
-            ...     print(f"{bug.title} (Impact: {bug.impact_score})")
         """
+        if not self.online:
+            # Offline mode: Search local DB
+            logger.info(f"Offline mode: Searching local database for {repo}")
+            
+            # Query local database for bugs matching this repo
+            # BugDatabase.get_bugs returns dicts, convert to objects? 
+            # For now, scan_repo expects Bug objects.
+            
+            # We'll implement a search method in DB that mimics scan
+            results = self.db.search_bugs(repo_query=repo, min_impact=min_impact)
+            
+            # Convert dicts to Bug objects
+            bugs = []
+            for r in results:
+                # Need to construct Bug object from dict
+                # This assumes Bug class can handle it or we manually map
+                bug = Bug(
+                    repo=r['repo'].split(':')[-1] if ':' in r['repo'] else r['repo'],
+                    issue_number=r['issue_number'],
+                    title=r['title'],
+                    url=r['url'],
+                    impact_score=r['impact_score'],
+                    affected_users=r['affected_users'],
+                    severity=r['severity'],
+                    labels=json.loads(r['labels']) if isinstance(r['labels'], str) else [],
+                    comments_count=r['comments'],
+                    created_at=r['created_at'],
+                    updated_at=r['updated_at'],
+                    platform=r['repo'].split(':')[0] if ':' in r['repo'] else 'github'
+                )
+                bugs.append(bug)
+            return bugs
+
         bugs = self.scanner.scan_repo(repo, min_impact=min_impact)
         
         if save and bugs:
@@ -100,13 +151,15 @@ class BugnosisAPI:
             
         Returns:
             Combined list of bugs sorted by impact
-            
-        Example:
-            >>> bugs = api.scan_multiple_repos([
-            ...     "rust-lang/rust",
-            ...     "python/cpython"
-            ... ], min_impact=80)
         """
+        if not self.online:
+             # Simple offline aggregation
+             all_bugs = []
+             for repo in repos:
+                 all_bugs.extend(self.scan_repo(repo, min_impact=min_impact, save=False))
+             all_bugs.sort(key=lambda x: x.impact_score, reverse=True)
+             return all_bugs
+
         bugs = scan_multiple_repos(repos, min_impact=min_impact, 
                                   token=self.scanner.token)
         
@@ -127,27 +180,16 @@ class BugnosisAPI:
             
         Returns:
             List of bug dictionaries
-            
-        Example:
-            >>> bugs = api.get_saved_bugs(min_impact=85, status='discovered')
         """
         return self.db.get_bugs(min_impact=min_impact, status=status)
         
     def diagnose_bug(self, repo: str, issue_number: int) -> Optional[str]:
         """
         Get AI-powered diagnosis of a bug.
-        
-        Args:
-            repo: Repository in owner/repo format
-            issue_number: GitHub issue number
-            
-        Returns:
-            AI diagnosis text or None if unavailable
-            
-        Example:
-            >>> diagnosis = api.diagnose_bug("pytorch/pytorch", 12345)
-            >>> print(diagnosis)
         """
+        if not self.online:
+            return "Error: AI features require an internet connection."
+
         issue = self.github.get_issue(repo, issue_number)
         if not issue:
             return None
@@ -160,23 +202,10 @@ class BugnosisAPI:
                    fix_description: str) -> Optional[str]:
         """
         Generate PR description with AI.
-        
-        Args:
-            repo: Repository in owner/repo format
-            issue_number: GitHub issue number
-            fix_description: Brief description of your fix
-            
-        Returns:
-            Professional PR description or None if unavailable
-            
-        Example:
-            >>> pr_desc = api.generate_pr(
-            ...     "pytorch/pytorch", 
-            ...     12345,
-            ...     "Fixed memory leak in tensor allocation"
-            ... )
-            >>> print(pr_desc)
         """
+        if not self.online:
+            return "Error: AI features require an internet connection."
+
         issue = self.github.get_issue(repo, issue_number)
         if not issue:
             return None
@@ -190,47 +219,14 @@ class BugnosisAPI:
                           pr_url: str,
                           impact_score: int,
                           affected_users: int):
-        """
-        Record a contribution to track your impact.
-        
-        Args:
-            repo: Repository in owner/repo format
-            issue_number: GitHub issue number
-            pr_number: GitHub PR number
-            pr_url: URL to the PR
-            impact_score: Impact score of the fix (0-100)
-            affected_users: Estimated users affected
-            
-        Example:
-            >>> api.record_contribution(
-            ...     "pytorch/pytorch",
-            ...     12345,
-            ...     67890,
-            ...     "https://github.com/pytorch/pytorch/pull/67890",
-            ...     95,
-            ...     100000
-            ... )
-        """
+        """Record a contribution to track your impact."""
         self.db.record_contribution(
             repo, issue_number, pr_number, pr_url,
             impact_score, affected_users
         )
         
     def get_stats(self) -> Dict:
-        """
-        Get your contribution statistics.
-        
-        Returns:
-            Dictionary with stats:
-            - total_contributions: Number of PRs submitted
-            - total_users_helped: Total users impacted
-            - avg_impact_score: Average impact score
-            - merged_count: Number of merged PRs
-            
-        Example:
-            >>> stats = api.get_stats()
-            >>> print(f"You've helped {stats['total_users_helped']:,} users!")
-        """
+        """Get your contribution statistics."""
         return self.db.get_stats()
         
     def close(self):
@@ -244,49 +240,29 @@ class BugnosisAPI:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Close on context exit."""
         self.close()
+    
+    @property
+    def status(self) -> str:
+        """Return 'online' or 'offline'."""
+        return 'online' if self.online else 'offline'
 
 
 # Convenience functions for quick operations
 
 def scan(repo: str, min_impact: int = 70, **kwargs) -> List[Bug]:
-    """
-    Quick scan function.
-    
-    Example:
-        >>> from bugnosis.api import scan
-        >>> bugs = scan("pytorch/pytorch", min_impact=85)
-    """
+    """Quick scan function."""
     with BugnosisAPI(**kwargs) as api:
         return api.scan_repo(repo, min_impact=min_impact)
 
 
 def diagnose(repo: str, issue_number: int, **kwargs) -> Optional[str]:
-    """
-    Quick diagnose function.
-    
-    Example:
-        >>> from bugnosis.api import diagnose
-        >>> diagnosis = diagnose("pytorch/pytorch", 12345, groq_key="...")
-    """
+    """Quick diagnose function."""
     with BugnosisAPI(**kwargs) as api:
         return api.diagnose_bug(repo, issue_number)
 
 
 def generate_pr_description(repo: str, issue_number: int, 
                            fix_description: str, **kwargs) -> Optional[str]:
-    """
-    Quick PR generation function.
-    
-    Example:
-        >>> from bugnosis.api import generate_pr_description
-        >>> pr = generate_pr_description(
-        ...     "pytorch/pytorch", 
-        ...     12345, 
-        ...     "Fixed leak",
-        ...     groq_key="..."
-        ... )
-    """
+    """Quick PR generation function."""
     with BugnosisAPI(**kwargs) as api:
         return api.generate_pr(repo, issue_number, fix_description)
-
-

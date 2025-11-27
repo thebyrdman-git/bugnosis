@@ -16,7 +16,9 @@ from .analytics import generate_insights
 from .copilot import BugFixCopilot
 from .platforms import get_platform, list_platforms
 from .plugins import PluginManager
+from .auth import set_token, get_token, delete_token
 import json
+import getpass
 
 
 def print_bugs(bugs, show_details=False):
@@ -57,7 +59,7 @@ def cmd_diagnose(args):
         
     repo = args[0]
     issue_num = int(args[1])
-    token = os.environ.get('GITHUB_TOKEN')
+    token = os.environ.get('GITHUB_TOKEN') or get_token('github')
     
     print(f"Fetching issue #{issue_num} from {repo}...")
     
@@ -95,7 +97,7 @@ def cmd_generate_pr(args):
     repo = args[0]
     issue_num = int(args[1])
     fix_desc = args[2]
-    token = os.environ.get('GITHUB_TOKEN')
+    token = os.environ.get('GITHUB_TOKEN') or get_token('github')
     
     print(f"Generating PR description for issue #{issue_num}...")
     
@@ -131,7 +133,7 @@ def cmd_scan_multi(args):
     repos = []
     min_impact = 70
     save_results = False
-    token = os.environ.get('GITHUB_TOKEN')
+    token = os.environ.get('GITHUB_TOKEN') or get_token('github')
     
     i = 0
     while i < len(args):
@@ -179,12 +181,16 @@ def cmd_scan_multi(args):
 def cmd_list(args):
     """List saved bugs from database."""
     min_impact = 70
+    output_json = False
     
     i = 0
     while i < len(args):
         if args[i] == '--min-impact' and i + 1 < len(args):
             min_impact = int(args[i + 1])
             i += 2
+        elif args[i] == '--json':
+            output_json = True
+            i += 1
         else:
             i += 1
             
@@ -192,6 +198,12 @@ def cmd_list(args):
     bugs_data = db.get_bugs(min_impact=min_impact)
     db.close()
     
+    if output_json:
+        # Convert rows to dicts if they aren't already
+        json_bugs = [dict(b) for b in bugs_data]
+        print(json.dumps(json_bugs))
+        return
+
     if not bugs_data:
         print(f"No saved bugs with impact >= {min_impact}")
         print("Run 'bugnosis scan <repo> --save' to save bugs")
@@ -610,6 +622,12 @@ def cmd_scan_platform(args):
         kwargs = {}
         if instance:
             kwargs['instance'] = instance
+            
+        # Get token for platform
+        token_key = f"{platform_name}_token".upper()
+        token = os.environ.get(token_key) or get_token(platform_name)
+        if token:
+            kwargs['token'] = token
         
         platform = get_platform(platform_name, **kwargs)
         
@@ -876,78 +894,401 @@ def cmd_plugins(args):
     print("Plugin management commands coming soon.")
 
 
+def cmd_coach(args):
+    """AI Rejection Coaching (Post-Mortem)."""
+    if len(args) < 2:
+        print("Error: Repository and PR number required")
+        print("Usage: bugnosis coach owner/repo pr-number")
+        sys.exit(1)
+        
+    repo = args[0]
+    pr_num = int(args[1])
+    token = os.environ.get('GITHUB_TOKEN') or get_token('github')
+    groq_key = os.environ.get('GROQ_API_KEY')
+    
+    if not groq_key:
+        print("Error: GROQ_API_KEY required for AI Coaching")
+        sys.exit(1)
+
+    print(f"\n🎓 Analyzing Rejected PR #{pr_num} for coaching...\n")
+
+    client = GitHubClient(token=token)
+    
+    # We need PR details and review comments
+    # GitHubClient needs to be extended or we use raw requests here for speed
+    # For now, let's assume we can get basic PR data
+    # Implementing a quick fetch here to avoid huge refactor of GitHubClient right now
+    
+    import requests
+    headers = {'Authorization': f'token {token}'} if token else {}
+    
+    try:
+        # Get PR
+        pr_resp = requests.get(f"https://api.github.com/repos/{repo}/pulls/{pr_num}", headers=headers)
+        if pr_resp.status_code != 200:
+            print(f"Error fetching PR: {pr_resp.status_code}")
+            return
+        pr_data = pr_resp.json()
+        
+        # Check if actually closed/merged
+        if pr_data['state'] == 'open':
+            print("⚠️ This PR is still Open! Coaching is for rejected/closed PRs.")
+            print("Good luck! You got this!")
+            return
+        if pr_data.get('merged_at'):
+            print("🎉 This PR was merged! No coaching needed. You are a Hero!")
+            return
+
+        # Get Reviews/Comments
+        comments_resp = requests.get(f"https://api.github.com/repos/{repo}/pulls/{pr_num}/reviews", headers=headers)
+        reviews = comments_resp.json() if comments_resp.status_code == 200 else []
+        
+        # Also get issue comments
+        issue_comments_resp = requests.get(f"https://api.github.com/repos/{repo}/issues/{pr_num}/comments", headers=headers)
+        issue_comments = issue_comments_resp.json() if issue_comments_resp.status_code == 200 else []
+
+        all_comments = reviews + issue_comments
+
+        # Analyze
+        ai = AIEngine(api_key=groq_key)
+        coaching = ai.analyze_rejection(pr_data, all_comments)
+
+        if 'error' in coaching:
+            print(f"Error: {coaching['error']}")
+            return
+
+        print("=" * 60)
+        print(f"🛡️  REJECTION POST-MORTEM: {repo}#{pr_num}")
+        print("=" * 60)
+        print(f"\n🔴 Root Cause: {coaching.get('reason', 'Unknown')}")
+        print(f"\n🧐 Analysis:\n{coaching.get('analysis')}")
+        
+        print("\n💡 Actionable Advice:")
+        if isinstance(coaching.get('advice'), list):
+            for tip in coaching['advice']:
+                print(f"  - {tip}")
+        else:
+            print(coaching.get('advice'))
+            
+        print(f"\n🦁 Coach says: \"{coaching.get('encouragement')}\"")
+        print("\n" + "=" * 60)
+        print("Every rejection is just XP for the next level. Keep hunting.")
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+def cmd_auth(args):
+    """Manage authentication."""
+    if len(args) < 1:
+        print("Error: Action required")
+        print("Usage: bugnosis auth <login|logout|status> [platform]")
+        sys.exit(1)
+        
+    action = args[0]
+    platform = args[1] if len(args) > 1 else 'github'
+    
+    if action == 'login':
+        print(f"Authenticating with {platform}...")
+        print("Tip: Create a Personal Access Token (PAT) with 'repo' scope.")
+        
+        if platform == 'github':
+            print("URL: https://github.com/settings/tokens/new")
+        elif platform == 'gitlab':
+            print("URL: https://gitlab.com/-/profile/personal_access_tokens")
+            
+        token = getpass.getpass(f"Enter {platform} token: ").strip()
+        
+        if not token:
+            print("Error: Token cannot be empty")
+            return
+            
+        # TODO: Validate token by making a test API call
+        set_token(platform, token)
+        print(f"✅ Successfully authenticated with {platform}!")
+        
+    elif action == 'logout':
+        delete_token(platform)
+        print(f"Logged out of {platform}")
+        
+    elif action == 'status':
+        token = get_token(platform)
+        if token:
+            print(f"✅ {platform}: Authenticated")
+        else:
+            print(f"❌ {platform}: Not authenticated")
+            
+    else:
+        print(f"Unknown action: {action}")
+
+
+def cmd_sandbox(args):
+    """Run a repository in a Podman sandbox."""
+    if len(args) < 1:
+        print("Error: Repository required")
+        print("Usage: bugnosis sandbox <owner/repo>")
+        sys.exit(1)
+        
+    repo = args[0]
+    print(f"📦 Preparing sandbox for {repo}...")
+    
+    # Check for podman
+    import shutil
+    import subprocess
+    import tempfile
+    from pathlib import Path
+    
+    podman_cmd = shutil.which("podman")
+    if not podman_cmd:
+        print("Error: 'podman' not found. Please install Podman first.")
+        return
+
+    # Create temp dir
+    # We use a try/finally block with mkdtemp manually or just TemporaryDirectory
+    # TemporaryDirectory is safer for cleanup
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            repo_name = repo.split('/')[-1]
+            repo_path = work_dir / repo_name
+            
+            print(f"1. Cloning {repo}...")
+            # Using https clone for simplicity
+            subprocess.run(["git", "clone", "--depth", "1", f"https://github.com/{repo}.git", str(repo_path)], check=True)
+            
+            print("2. Detecting language...")
+            # Simple heuristic
+            language = "Unknown (Generic Linux)"
+            base_image = "registry.fedoraproject.org/fedora:latest"
+            build_cmds = []
+            
+            if (repo_path / "Cargo.toml").exists():
+                language = "Rust"
+                base_image = "docker.io/library/rust:latest"
+                build_cmds = ["cargo build"]
+            elif (repo_path / "requirements.txt").exists() or (repo_path / "pyproject.toml").exists():
+                language = "Python"
+                base_image = "docker.io/library/python:3.11"
+                if (repo_path / "requirements.txt").exists():
+                    build_cmds = ["pip install -r requirements.txt"]
+                else:
+                    build_cmds = ["pip install ."]
+            elif (repo_path / "package.json").exists():
+                language = "Node.js"
+                base_image = "docker.io/library/node:20"
+                build_cmds = ["npm install"]
+            elif (repo_path / "go.mod").exists():
+                language = "Go"
+                base_image = "docker.io/library/golang:1.21"
+                build_cmds = ["go build ./..."]
+            elif (repo_path / "Makefile").exists():
+                language = "C/C++ (Makefile)"
+                base_image = "registry.fedoraproject.org/fedora:latest"
+                build_cmds = ["dnf install -y make gcc", "make"]
+
+            print(f"   Detected: {language}")
+            
+            print("3. Generating Containerfile...")
+            containerfile_content = f"""
+FROM {base_image}
+WORKDIR /app
+COPY . .
+"""
+            # Add build commands
+            for cmd in build_cmds:
+                 containerfile_content += f"RUN {cmd}\n"
+                 
+            containerfile_content += 'CMD ["/bin/bash"]\n'
+            
+            containerfile_path = repo_path / "Containerfile"
+            with open(containerfile_path, "w") as f:
+                f.write(containerfile_content)
+                
+            print("4. Building sandbox image...")
+            image_tag = f"bugnosis-sandbox-{repo_name.lower()}"
+            # capture_output=True to keep it clean, or let it stream so user sees progress?
+            # Stream is better for "demo" feeling of work happening
+            subprocess.run(["podman", "build", "-t", image_tag, "-f", "Containerfile", "."], cwd=repo_path, check=True)
+            
+            print(f"5. Launching sandbox ({image_tag})...")
+            print("   (Type 'exit' to return to Bugnosis)")
+            print("-" * 50)
+            
+            subprocess.run(["podman", "run", "-it", "--rm", image_tag], check=False)
+            
+    except subprocess.CalledProcessError as e:
+        print(f"Error during sandbox creation: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        
+    print("-" * 50)
+    print("Sandbox session ended. Cleaned up temporary files.")
+
+
+def cmd_doctor(args):
+    """System health check for developers."""
+    print("\n🩺  Bugnosis Doctor: System Health Check\n")
+    
+    # 1. Python Environment
+    import platform
+    print(f"✅ Python: {platform.python_version()}")
+    
+    # 2. Authentication
+    print("\n🔐 Authentication:")
+    for svc in ['github', 'gitlab', 'bugzilla']:
+        if get_token(svc):
+            print(f"   ✅ {svc.capitalize()}: Token found")
+        elif os.environ.get(f"{svc.upper()}_TOKEN"):
+            print(f"   ✅ {svc.capitalize()}: Env var set")
+        else:
+            print(f"   ❌ {svc.capitalize()}: No token (Rate limits will be tight)")
+            
+    # 3. External Tools
+    import shutil
+    print("\n🛠  External Tools:")
+    
+    podman = shutil.which("podman")
+    if podman:
+        print(f"   ✅ Podman: Found at {podman}")
+    else:
+        print("   ❌ Podman: Not found (Sandbox features disabled)")
+        
+    git = shutil.which("git")
+    if git:
+        print(f"   ✅ Git: Found at {git}")
+    else:
+        print("   ❌ Git: Not found (Required for Co-Pilot)")
+        
+    # 4. AI Connectivity
+    print("\n🧠 AI Services:")
+    if os.environ.get("GROQ_API_KEY"):
+        print("   ✅ Groq API: Key configured")
+    else:
+        print("   ❌ Groq API: Key missing (AI features disabled)")
+        
+    # 5. Database
+    try:
+        db = BugDatabase()
+        stats = db.get_stats()
+        db.close()
+        print(f"\n💾 Database: Connected ({stats['total_contributions']} contributions tracked)")
+    except Exception as e:
+        print(f"\n❌ Database: Error connecting ({e})")
+        
+    print("\n" + "="*60)
+    if not podman or not os.environ.get("GROQ_API_KEY"):
+        print("⚠️  Setup incomplete for Power User features.")
+    else:
+        print("✨ System ready for high-impact engineering.")
+
+
+def cmd_sync(args):
+    """Cloud Sync: Backup/Restore your Hero Profile."""
+    if len(args) < 1:
+        print("Error: Action required")
+        print("Usage: bugnosis sync <push|pull> [gist-id]")
+        sys.exit(1)
+        
+    action = args[0]
+    gist_id = args[1] if len(args) > 1 else None
+    
+    # Get config to see if we have a saved gist_id
+    config = BugnosisConfig()
+    if not gist_id:
+        gist_id = config.get('sync_gist_id')
+        
+    token = get_token('github')
+    if not token:
+        print("Error: Authentication required. Run 'bugnosis auth login github'")
+        return
+        
+    client = GitHubClient(token=token)
+    db = BugDatabase()
+    
+    if action == 'push':
+        print("☁️  Pushing Hero Profile to Cloud...")
+        json_data = db.export_profile_json()
+        
+        files = {
+            'bugnosis_profile.json': {'content': json_data}
+        }
+        
+        if gist_id:
+            print(f"Updating existing Gist: {gist_id}")
+            resp = client.update_gist(gist_id, files)
+        else:
+            print("Creating new private Gist...")
+            user = client.get_user()
+            desc = f"Bugnosis Hero Profile for {user.get('login', 'User')}"
+            resp = client.create_gist(files, desc, public=False)
+            
+        if resp:
+            new_id = resp['id']
+            config.set('sync_gist_id', new_id)
+            config.save()
+            print(f"✅ Sync Complete! Gist ID: {new_id}")
+            print("Use this ID to pull on another machine.")
+        else:
+            print("❌ Sync failed.")
+            
+    elif action == 'pull':
+        if not gist_id:
+            print("Error: Gist ID required for first pull")
+            print("Usage: bugnosis sync pull <gist-id>")
+            return
+            
+        print(f"☁️  Pulling Hero Profile from Gist: {gist_id}...")
+        gist = client.get_gist(gist_id)
+        
+        if gist and 'bugnosis_profile.json' in gist['files']:
+            content = gist['files']['bugnosis_profile.json']['content']
+            if db.import_profile_json(content):
+                config.set('sync_gist_id', gist_id)
+                config.save()
+                print("✅ Profile Restored! Your XP and badges are back.")
+            else:
+                print("❌ Restore failed (Import Error)")
+        else:
+            print("❌ Restore failed (Gist not found or invalid format)")
+            
+    db.close()
+
+
 def main():
     """Main CLI entry point."""
     args = sys.argv[1:]
     
     if not args or args[0] in ['-h', '--help', 'help']:
         print("""
-Bugnosis - Find high-impact bugs to fix
+Bugnosis - The Hero Engine for Open Source
 
-Usage:
-    bugnosis scan <repo> [options]
-    bugnosis scan-multi <repo1> <repo2> ... [options]
-    bugnosis scan-platform <platform> <project> [options]
-    bugnosis platforms
-    bugnosis list [--min-impact N]
-    bugnosis stats
-    bugnosis insights [--min-impact N]
-    bugnosis watch add <repo>
-    bugnosis watch list
-    bugnosis watch scan
-    bugnosis config get <key>
-    bugnosis config set <key> <value>
-    bugnosis export <format> <output-file> [--min-impact N]
-    bugnosis leaderboard <output-file>
-    bugnosis diagnose <repo> <issue-number>
-    bugnosis generate-pr <repo> <issue-number> "<what-you-fixed>"
-    bugnosis copilot <repo> <issue-number>
-    bugnosis difficulty <repo> <issue-number>
-    bugnosis clear-cache
-    bugnosis help
+Core Workflow:
+    bugnosis scan <repo>            Scan a GitHub repository
+    bugnosis smart-scan "query"     Find bugs across all platforms (AI)
+    bugnosis search "query"         Federated search (GitHub + GitLab + Bugzilla)
+    bugnosis list                   View saved opportunities
+    bugnosis stats                  View your impact dashboard
 
-Examples:
-    # GitHub (default)
-    bugnosis scan pytorch/pytorch
-    
-    # Other platforms
-    bugnosis scan-platform gitlab gitlab-org/gitlab --min-impact 80
-    bugnosis scan-platform bugzilla Firefox --instance mozilla
-    bugnosis platforms
-    
-    # Multi-repo
-    bugnosis scan-multi rust-lang/rust python/cpython --min-impact 80
-    
-    # Analysis
-    bugnosis list --min-impact 85
-    bugnosis stats
-    bugnosis insights
-    
-    # Export
-    bugnosis export json bugs.json --min-impact 85
-    bugnosis leaderboard leaderboard.html
-    
-    # AI Features
-    bugnosis copilot pytorch/pytorch 12345
-    bugnosis difficulty rust-lang/rust 54321
-    bugnosis diagnose microsoft/vscode 23991
-    bugnosis generate-pr wireguard-gui 123 "Fixed snap package build"
-    
-    # Maintenance
-    bugnosis clear-cache
+Developer Tools:
+    bugnosis copilot <repo> <id>    AI-assisted bug fixing
+    bugnosis coach <repo> <id>      AI post-mortem for rejected PRs
+    bugnosis sandbox <repo>         Launch Podman test environment
+    bugnosis generate-pr            Draft a PR description
+    bugnosis diagnose               AI root cause analysis
 
-Options:
-    --min-impact N    Minimum impact score (0-100, default: 70)
-    --details         Show additional details
-    --token TOKEN     GitHub API token (or set GITHUB_TOKEN env var)
-    --save            Save results to local database
+Configuration:
+    bugnosis auth <login|status>    Manage API tokens securely
+    bugnosis sync <push|pull>       Backup profile to GitHub Gist
+    bugnosis watch <add|scan>       Monitor repositories
+    bugnosis plugins                Manage external modules
+    bugnosis config <get|set>       Tweaks (min_impact, theme)
+    bugnosis doctor                 Check system health & dependencies
 
-Environment:
-    GITHUB_TOKEN      GitHub personal access token for API
-    GROQ_API_KEY      Groq API key for AI features
+API Power Users:
+    Python:  from bugnosis.api import BugnosisAPI
+    Export:  bugnosis export json bugs.json
     
-Note: Without a token, API rate limits are very low (60 requests/hour).
-Get a token at: https://github.com/settings/tokens
+Run 'bugnosis help' for detailed options.
 """)
         return
         
@@ -1001,66 +1342,43 @@ Get a token at: https://github.com/settings/tokens
     elif command == 'plugins':
         cmd_plugins(args[1:])
         return
-    elif command != 'scan':
+    elif command == 'auth':
+        cmd_auth(args[1:])
+        return
+    elif command == 'sync':
+        cmd_sync(args[1:])
+        return
+    elif command == 'coach':
+        cmd_coach(args[1:])
+        return
+    elif command == 'doctor':
+        cmd_doctor(args[1:])
+        return
+    elif command == 'sandbox':
+        cmd_sandbox(args[1:])
+        return
+    elif command == 'smart-scan':
+        cmd_smart_scan(args[1:])
+        return
+    elif command == 'search':
+        cmd_search(args[1:])
+        return
+    elif command == 'scan':
+        # Legacy alias for scan-platform github
+        if len(args) < 2:
+            print("Error: Repository required")
+            print("Usage: bugnosis scan <owner/repo> [options]")
+            sys.exit(1)
+            
+        # Redirect to unified platform scanner
+        new_args = ['github'] + args[1:]
+        cmd_scan_platform(new_args)
+        return
+
+    else:
         print(f"Unknown command: {command}")
         print("Run 'bugnosis help' for usage")
         sys.exit(1)
-        
-    if len(args) < 2:
-        print("Error: Repository required")
-        print("Usage: bugnosis scan <owner/repo>")
-        sys.exit(1)
-        
-    repo = args[1]
-    
-    # Parse options
-    min_impact = 70
-    show_details = False
-    save_results = False
-    token = os.environ.get('GITHUB_TOKEN')
-    
-    i = 2
-    while i < len(args):
-        if args[i] == '--min-impact' and i + 1 < len(args):
-            min_impact = int(args[i + 1])
-            i += 2
-        elif args[i] == '--details':
-            show_details = True
-            i += 1
-        elif args[i] == '--save':
-            save_results = True
-            i += 1
-        elif args[i] == '--token' and i + 1 < len(args):
-            token = args[i + 1]
-            i += 2
-        else:
-            print(f"Unknown option: {args[i]}")
-            i += 1
-            
-    # Scan
-    print(f"Scanning {repo} for high-impact bugs...")
-    print(f"Minimum impact score: {min_impact}")
-    
-    if not token:
-        print("\nWarning: No GitHub token set. Rate limits are very low.")
-        print("Set GITHUB_TOKEN environment variable or use --token")
-        print()
-        
-    scanner = GitHubScanner(token=token)
-    bugs = scanner.scan_repo(repo, min_impact=min_impact)
-    
-    if save_results and bugs:
-        db = BugDatabase()
-        db.save_bugs(bugs)
-        db.close()
-        print(f"Saved {len(bugs)} bugs to local database\n")
-    
-    print_bugs(bugs, show_details=show_details)
-    
-    if bugs:
-        print(f"Total potential impact: ~{sum(b.affected_users for b in bugs):,} users")
-        print(f"Average impact score: {sum(b.impact_score for b in bugs) // len(bugs)}/100")
-
 
 if __name__ == '__main__':
     main()

@@ -5,10 +5,13 @@ bugnosis/__main__.py
 bugnosis/ai.py
 bugnosis/analytics.py
 bugnosis/api.py
+bugnosis/auth.py
 bugnosis/cache.py
 bugnosis/cli.py
 bugnosis/config.py
+bugnosis/copilot.py
 bugnosis/export.py
+bugnosis/federated.py
 bugnosis/github.py
 bugnosis/multi_scan.py
 bugnosis/scanner.py
@@ -19,3 +22,11 @@ bugnosis.egg-info/dependency_links.txt
 bugnosis.egg-info/entry_points.txt
 bugnosis.egg-info/requires.txt
 bugnosis.egg-info/top_level.txt
+bugnosis/platforms/__init__.py
+bugnosis/platforms/base.py
+bugnosis/platforms/bugzilla_platform.py
+bugnosis/platforms/github_platform.py
+bugnosis/platforms/gitlab_platform.py
+bugnosis/plugins/__init__.py
+bugnosis/plugins/base.py
+bugnosis/plugins/manager.py

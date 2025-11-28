@@ -24,7 +24,8 @@ class GitHubPlatform(BugPlatform):
                    project: str,
                    min_impact: int = 70,
                    labels: Optional[List[str]] = None,
-                   severity: Optional[str] = None) -> List[Bug]:
+                   severity: Optional[str] = None,
+                   mode: str = "normal") -> List[Bug]:
         """Search GitHub issues."""
         from ..scanner import ImpactScorer
         
@@ -40,11 +41,22 @@ class GitHubPlatform(BugPlatform):
         issues_url = f'https://api.github.com/repos/{project}/issues'
         params = {
             'state': 'open',
-            'labels': 'bug',
+            # 'labels': 'bug',
             'sort': 'comments',
             'direction': 'desc',
             'per_page': 30
         }
+        
+        # Apply novice mode filters
+        if mode == "novice":
+            # In novice mode, prioritize finding labeled easy issues
+            # We try multiple common labels
+            params['labels'] = 'good first issue'
+            params['sort'] = 'updated' # Fresh easy issues are better
+            
+            # Note: GitHub API only allows one label param at a time effectively in this format
+            # A better approach would be to try a few calls or use search API
+            # But for now, 'good first issue' is the gold standard.
         
         resp = self.client.session.get(issues_url, params=params)
         if resp.status_code != 200:
@@ -58,7 +70,7 @@ class GitHubPlatform(BugPlatform):
             if 'pull_request' in issue:
                 continue
                 
-            impact = ImpactScorer.calculate(issue, repo_stats)
+            impact = ImpactScorer.calculate(issue, repo_stats, mode=mode)
             
             if impact >= min_impact:
                 bug = Bug(

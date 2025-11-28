@@ -45,6 +45,8 @@ class BugFixCopilot:
         if not self.client:
             return {"error": "AI Co-Pilot requires GROQ_API_KEY"}
         
+        context_str = f"Code Context:\n{code_context}" if code_context else ""
+        
         prompt = f"""You are an expert software engineer helping fix a bug.
 
 Issue: {issue.get('title', 'N/A')}
@@ -52,7 +54,7 @@ Issue: {issue.get('title', 'N/A')}
 Description:
 {issue.get('body', 'N/A')}
 
-{"Code Context:\n" + code_context if code_context else ""}
+{context_str}
 
 Provide a detailed analysis:
 1. What is the bug?
@@ -66,7 +68,7 @@ Be specific and technical."""
         try:
             response = self.client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 temperature=0.3,
                 max_tokens=2048,
             )
@@ -145,7 +147,7 @@ Format your response as:
         try:
             response = self.client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 temperature=0.2,  # Lower temp for code generation
                 max_tokens=3000,
             )
@@ -206,7 +208,7 @@ Provide:
         try:
             response = self.client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 temperature=0.2,
                 max_tokens=2048,
             )
@@ -293,7 +295,7 @@ Resolves #{issue.get('number', '')}
         try:
             response = self.client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 temperature=0.4,
                 max_tokens=2048,
             )
@@ -353,7 +355,7 @@ Rate the fix: APPROVE / NEEDS_WORK / REJECT
         try:
             response = self.client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 temperature=0.3,
                 max_tokens=1500,
             )
@@ -456,7 +458,7 @@ Be realistic and helpful."""
         try:
             response = self.client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 temperature=0.3,
                 max_tokens=1000,
             )

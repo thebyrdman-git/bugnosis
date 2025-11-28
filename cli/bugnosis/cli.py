@@ -98,6 +98,11 @@ def cmd_generate_pr(args):
     issue_num = int(args[1])
     fix_desc = args[2]
     token = os.environ.get('GITHUB_TOKEN') or get_token('github')
+    groq_key = os.environ.get('GROQ_API_KEY')
+    
+    if not groq_key:
+        print("Debug: GROQ_API_KEY not found in environment variables.")
+        # print(f"Debug: Env keys: {list(os.environ.keys())}")
     
     print(f"Generating PR description for issue #{issue_num}...")
     
@@ -108,7 +113,7 @@ def cmd_generate_pr(args):
         print("Error: Could not fetch issue")
         sys.exit(1)
         
-    ai = AIEngine()
+    ai = AIEngine(api_key=groq_key)
     pr_description = ai.generate_pr_description(issue, fix_desc)
     
     if pr_description:
@@ -598,6 +603,7 @@ def cmd_scan_platform(args):
     min_impact = 70
     save_results = False
     instance = None
+    mode = "normal"
     
     i = 2
     while i < len(args):
@@ -610,6 +616,12 @@ def cmd_scan_platform(args):
         elif args[i] == '--instance' and i + 1 < len(args):
             instance = args[i + 1]
             i += 2
+        elif args[i] == '--novice':
+            mode = "novice"
+            # Adjust default min_impact for novice mode if user didn't set it
+            if min_impact == 70:
+                min_impact = 50 
+            i += 1
         else:
             i += 1
     
@@ -632,7 +644,7 @@ def cmd_scan_platform(args):
         platform = get_platform(platform_name, **kwargs)
         
         # Search bugs
-        bugs = platform.search_bugs(project, min_impact=min_impact)
+        bugs = platform.search_bugs(project, min_impact=min_impact, mode=mode)
         
         if not bugs:
             print(f"No bugs found with impact >= {min_impact}")

@@ -1,11 +1,12 @@
-Metadata-Version: 2.4
+Metadata-Version: 2.1
 Name: bugnosis
-Version: 0.1.0
+Version: 1.0.0
 Summary: Find high-impact bugs to fix in open source
+Home-page: UNKNOWN
 Author: Bugnosis Contributors
+License: UNKNOWN
+Platform: UNKNOWN
 Requires-Python: >=3.8
-Requires-Dist: requests>=2.31.0
-Dynamic: author
-Dynamic: requires-dist
-Dynamic: requires-python
-Dynamic: summary
+
+UNKNOWN
+

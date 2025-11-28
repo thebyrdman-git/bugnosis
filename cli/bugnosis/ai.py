@@ -12,7 +12,7 @@ class AIEngine:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.environ.get('GROQ_API_KEY')
         self.base_url = 'https://api.groq.com/openai/v1/chat/completions'
-        self.model = 'llama-3.1-70b-versatile'
+        self.model = 'llama-3.3-70b-versatile'
         
     def resolve_target(self, query: str) -> Dict[str, str]:
         """
@@ -201,6 +201,7 @@ Use markdown formatting. Be professional and concise. No hype."""
                 result = response.json()
                 return result['choices'][0]['message']['content']
             else:
+                print(f"AI Request Failed: {response.status_code} - {response.text}")
                 return None
                 
         except Exception as e:

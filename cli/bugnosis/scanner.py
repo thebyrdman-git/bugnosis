@@ -24,7 +24,7 @@ class ImpactScorer:
     """Calculates impact scores for bugs."""
     
     @staticmethod
-    def calculate(bug_data: Dict, repo_stats: Dict) -> int:
+    def calculate(bug_data: Dict, repo_stats: Dict, mode: str = "normal") -> int:
         """
         Calculate impact score (0-100).
         
@@ -33,6 +33,8 @@ class ImpactScorer:
         - Severity: 0-30 (based on labels, comments, reactions)
         - Ease: 0-20 (based on labels like "good first issue")
         - Time: 0-10 (recent = higher score)
+        
+        In 'novice' mode, Ease is weighted significantly higher.
         """
         score = 0
         
@@ -71,7 +73,9 @@ class ImpactScorer:
             score += 5
             
         # Ease (0-20) - easier bugs get more points (better ROI)
-        if 'good first issue' in labels or 'easy' in labels:
+        is_easy = False
+        if any(x in labels for x in ['good first issue', 'good-first-issue', 'documentation', 'easy', 'beginner']):
+            is_easy = True
             score += 20
         elif 'help wanted' in labels:
             score += 15
@@ -81,6 +85,19 @@ class ImpactScorer:
         # Time (0-10) - recent issues are more relevant
         # This would need actual date calculation, simplified here
         score += 7
+        
+        # Mode adjustment
+        if mode == "novice":
+            # Boost easy issues, penalize hard ones
+            if is_easy:
+                score += 50  # Huge boost for explicitly easy issues
+            else:
+                score -= 30  # Penalize unknown difficulty
+                
+            # Cap at 100
+            score = min(score, 100)
+            # Floor at 0
+            score = max(score, 0)
         
         return min(score, 100)
 
@@ -121,7 +138,7 @@ class GitHubScanner:
         issues_url = f'https://api.github.com/repos/{repo}/issues'
         params = {
             'state': 'open',
-            'labels': 'bug',
+            # 'labels': 'bug',
             'sort': 'comments',
             'direction': 'desc',
             'per_page': 30
